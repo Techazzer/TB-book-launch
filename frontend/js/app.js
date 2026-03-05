@@ -162,8 +162,22 @@ function renderPricingTable(products) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:40px;">No pricing data available.</td></tr>';
         return;
     }
+
+    // Calculate average Amazon price
+    const amazonPrices = products.filter(p => p.marketplace === 'Amazon' && p.price > 0).map(p => p.price);
+    const avgAmazonPrice = amazonPrices.length ? Math.round(amazonPrices.reduce((a, b) => a + b, 0) / amazonPrices.length) : 0;
+
     tbody.innerHTML = products.map(p => {
-        const discount = p.mrp && p.price ? Math.round((1 - p.price / p.mrp) * 100) : null;
+        let gapText = '—';
+        if (p.marketplace === 'Amazon' && p.price && avgAmazonPrice) {
+            const diff = Math.round(p.price - avgAmazonPrice);
+            const color = diff > 0 ? 'var(--red)' : (diff < 0 ? 'var(--green)' : 'var(--text-main)');
+            const sign = diff > 0 ? '+' : '';
+            gapText = `<span style="color:${color}; font-weight:600;">${sign}₹${Math.abs(diff)}</span>`;
+        } else if (p.marketplace !== 'Amazon') {
+            gapText = '<span style="color:var(--text-light); font-size:11px;">(Flipkart product)</span>';
+        }
+
         return `
             <tr>
                 <td style="max-width:200px;">
@@ -171,15 +185,13 @@ function renderPricingTable(products) {
                     <div style="font-size:11px; color:var(--text-light);">${p.publisher || ''}</div>
                 </td>
                 <td>
-                    ${p.marketplace === 'Amazon' && p.price ? `<span class="price-current">₹${p.price}</span>${p.mrp ? `<span class="price-mrp">₹${p.mrp}</span>` : ''}` : '—'}
+                    ${p.marketplace === 'Amazon' && p.price ? `<span class="price-current">₹${p.price}</span>${p.mrp ? `<span class="price-mrp">₹${p.mrp}</span>` : ''}` : '<span style="color:var(--text-light);">—</span>'}
                 </td>
-                <td>
-                    ${p.marketplace === 'Flipkart' && p.price ? `<span class="price-current">₹${p.price}</span>${p.mrp ? `<span class="price-mrp">₹${p.mrp}</span>` : ''}` : '—'}
-                </td>
-                <td>${discount ? `<span class="price-discount">${discount}%</span>` : '—'}</td>
+                <td>${gapText}</td>
+                <td>${p.pages || '—'}</td>
                 <td>${p.author || '—'}</td>
                 <td>${p.best_seller_rank || '—'}</td>
-                <td>${p.rating || '—'}</td>
+                <td>${p.rating ? '⭐ ' + p.rating : '—'}</td>
             </tr>
         `;
     }).join('');

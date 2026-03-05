@@ -329,7 +329,7 @@ def generate_mock_amazon_data(exam_name: str) -> list[dict]:
             "language": random.choice(["English", "English", "English", "Hindi", "English/Hindi"]),
             "pages": base_pages + random.randint(-50, 100),
             "marketplace": "Amazon",
-            "product_url": f"https://www.amazon.in/dp/B0{random.randint(10000, 99999)}",
+            "product_url": f"https://www.amazon.in/s?k={short_name.replace(' ', '+')}+{book_type.replace(' ', '+')}",
             "description": f"Comprehensive {book_type.lower()} for {exam_name} exam preparation. Includes latest pattern questions, detailed solutions, and expert tips.",
             "exam_name": exam_name,
             "scraped_at": datetime.now().isoformat(),

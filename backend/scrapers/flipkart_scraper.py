@@ -308,7 +308,7 @@ def generate_mock_flipkart_data(exam_name: str) -> list[dict]:
             "language": random.choice(["English", "English", "Hindi", "English/Hindi"]),
             "pages": base_pages + random.randint(-30, 80),
             "marketplace": "Flipkart",
-            "product_url": f"https://www.flipkart.com/p/itm{random.randint(10000, 99999)}",
+            "product_url": f"https://www.flipkart.com/search?q={short_name.replace(' ', '+')}+{book_type.replace(' ', '+')}",
             "description": f"Comprehensive {book_type.lower()} for {exam_name}. Updated for latest exam pattern with solved examples and practice sets.",
             "exam_name": exam_name,
             "scraped_at": datetime.now().isoformat(),

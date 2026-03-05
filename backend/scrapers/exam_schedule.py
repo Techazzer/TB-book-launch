@@ -173,7 +173,7 @@ def get_seed_exam_data() -> list[dict]:
             "application_end": "2026-05-01",
             "expected_exam_date": "2026-06-15",
             "exam_cycle": "Annual",
-            "estimated_applicants": "25L",
+            "estimated_applicants": "30.69L",
             "source_url": "https://ssc.nic.in",
             "source_name": "Official",
             "notes": "Combined Higher Secondary Level",

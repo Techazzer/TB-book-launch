@@ -299,10 +299,24 @@ function renderUpcomingEmpty() {
 }
 
 function analyzeExam(examName) {
-    currentExam = examName;
-    document.getElementById('examSelect').value = examName;
-    loadExamData(examName);
-    document.getElementById('examSelect').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Match specific exam name (e.g., "SSC CGL 2026") to base exam category (e.g., "SSC CGL")
+    const select = document.getElementById('examSelect');
+    let matchedOption = "";
+    for (let i = 0; i < select.options.length; i++) {
+        const optVal = select.options[i].value;
+        if (optVal && examName.includes(optVal)) {
+            if (optVal.length > matchedOption.length) {
+                matchedOption = optVal;
+            }
+        }
+    }
+
+    const finalExam = matchedOption || examName;
+
+    currentExam = finalExam;
+    select.value = finalExam;
+    loadExamData(finalExam);
+    select.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function getCategory(name) {

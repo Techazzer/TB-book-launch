@@ -43,9 +43,13 @@
             <!-- ── Exam Selector ───────────────────────────────────── -->
             <div class="exam-selector-box">
                 <label>Select Exam for Detailed Analysis</label>
-                <select class="exam-select" id="examSelect" onchange="onExamSelected()">
-                    <option value="">— Choose an exam —</option>
-                </select>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <select class="exam-select" id="examSelect" onchange="onExamSelected()" style="flex: 1;">
+                        <option value="">— Choose an exam —</option>
+                    </select>
+                    <button class="btn" onclick="scrapeExam()" id="scrapeBtn" style="white-space: nowrap;">⚡️ Scrape
+                        Data</button>
+                </div>
             </div>
 
             <!-- ── Analysis Tabs ───────────────────────────────────── -->

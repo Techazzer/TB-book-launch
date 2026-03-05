@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 3 — Marketplace Scraping Engine
+> **Current Phase**: Phase 4 — Book Analysis & Competitor Intelligence
 > **Milestone**: v1.0 — MVP Product Launch Dashboard
 
 ## Must-Haves (from SPEC)
@@ -38,7 +38,7 @@
 - Refresh button for exam schedule data
 
 ### Phase 3: Marketplace Scraping Engine
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Build robust Amazon & Flipkart scrapers with live activity logging
 **Deliverables**:
 - Amazon India scraper (search, product details, reviews)

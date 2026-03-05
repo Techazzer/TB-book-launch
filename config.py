@@ -21,6 +21,8 @@ MAX_PRODUCTS_PER_MARKETPLACE = int(os.getenv("MAX_PRODUCTS_PER_MARKETPLACE", "30
 MAX_REVIEWS_PER_PRODUCT = int(os.getenv("MAX_REVIEWS_PER_PRODUCT", "100"))
 SCRAPE_DELAY_MIN = float(os.getenv("SCRAPE_DELAY_MIN", "2"))
 SCRAPE_DELAY_MAX = float(os.getenv("SCRAPE_DELAY_MAX", "5"))
+SCRAPING_DELAY = float(os.getenv("SCRAPING_DELAY", "2"))  # seconds between requests
+SCRAPING_MAX_PAGES = int(os.getenv("SCRAPING_MAX_PAGES", "3"))  # max search result pages
 
 # ── Supported Exams ──────────────────────────────────────────────────────────
 EXAM_LIST = [

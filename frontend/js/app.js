@@ -39,6 +39,26 @@ function onExamSelected() {
     }
 }
 
+async function scrapeExam() {
+    if (!currentExam) {
+        addLogEntry('warning', 'Select an exam first before scraping.');
+        return;
+    }
+    addLogEntry('info', `Starting scrape pipeline for "${currentExam}"...`);
+    try {
+        const res = await fetch(`${API}/api/exams/${encodeURIComponent(currentExam)}/scrape`, { method: 'POST' });
+        if (res.ok) {
+            const data = await res.json();
+            addLogEntry('success', `Pipeline done: ${data.total_saved} products scraped in ${data.duration_seconds}s.`);
+            await loadExamData(currentExam);
+        } else {
+            addLogEntry('error', 'Scrape failed. Check server logs.');
+        }
+    } catch (err) {
+        addLogEntry('error', `Scrape error: ${err.message}`);
+    }
+}
+
 // ── Tab Switching ───────────────────────────────────────────────────────────
 function switchTab(tabName) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));

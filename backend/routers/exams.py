@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from backend import crud
 from backend.models import ExamBase, ExamOut, ExamOverview, StatusResponse
+from backend.scrapers.pipeline import run_scraping_pipeline
 from config import EXAM_LIST
 import csv
 import io
@@ -118,3 +119,11 @@ def get_exam_gaps(exam_name: str):
     if not gaps:
         raise HTTPException(status_code=404, detail="No gap analysis found. Run AI analysis first.")
     return gaps
+
+
+@router.post("/{exam_name}/scrape")
+async def scrape_exam_data(exam_name: str, max_results: int = 20):
+    """Run the full scraping pipeline for an exam (Amazon + Flipkart)."""
+    results = await run_scraping_pipeline(exam_name, max_per_source=max_results)
+    return results
+

@@ -102,6 +102,15 @@ def get_all_exam_schedules() -> list[dict]:
 
 
 # ── Products ─────────────────────────────────────────────────────────────────
+def upsert_product(data: dict) -> int:
+    """Convenience: insert a product by exam_name (auto-resolves exam_id)."""
+    exam_name = data.get("exam_name", "")
+    if not exam_name:
+        raise ValueError("exam_name is required in product data")
+    exam_id = upsert_exam(exam_name)
+    return insert_product(exam_id, data)
+
+
 def insert_product(exam_id: int, data: dict) -> int:
     conn = get_connection()
     cur = conn.cursor()
@@ -140,16 +149,27 @@ def insert_product(exam_id: int, data: dict) -> int:
     return last_id
 
 
-def get_products_by_exam(exam_id: int) -> list[dict]:
+def get_products_by_exam(exam_name_or_id) -> list[dict]:
+    """Get products by exam name (str) or exam id (int)."""
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute(
-        "SELECT * FROM products WHERE exam_id = ? ORDER BY rating DESC, review_count DESC",
-        (exam_id,),
-    )
+    if isinstance(exam_name_or_id, str):
+        cur.execute(
+            """SELECT p.* FROM products p
+               JOIN exams e ON p.exam_id = e.id
+               WHERE e.name = ?
+               ORDER BY p.rating DESC, p.review_count DESC""",
+            (exam_name_or_id,),
+        )
+    else:
+        cur.execute(
+            "SELECT * FROM products WHERE exam_id = ? ORDER BY rating DESC, review_count DESC",
+            (exam_name_or_id,),
+        )
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
 
 
 def get_product_by_id(product_id: int) -> Optional[dict]:

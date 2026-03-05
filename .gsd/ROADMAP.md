@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 2 — Upcoming Exams Module
+> **Current Phase**: Phase 3 — Marketplace Scraping Engine
 > **Milestone**: v1.0 — MVP Product Launch Dashboard
 
 ## Must-Haves (from SPEC)
@@ -28,7 +28,7 @@
 - Basic exam selector component
 
 ### Phase 2: Upcoming Exams Module
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Build the upcoming exams intelligence section with exam schedule data
 **Deliverables**:
 - Exam schedule data model and API

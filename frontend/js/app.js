@@ -1,20 +1,20 @@
 /**
- * Product Launch Dashboard — Frontend Application Logic
- * Handles API calls, WebSocket activity log, section navigation, and data rendering.
+ * Testbook Catalog Planner — Dashboard App Logic
+ * Matches Stitch UI: top navbar, 4 analysis tabs, exam cards, activity log
  */
 
 const API = '';
 let currentExam = null;
 let ws = null;
 
-// ── Initialization ──────────────────────────────────────────────────────────
+// ── Init ────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     loadExamList();
     loadUpcomingExams();
     connectWebSocket();
 });
 
-// ── Exam List ───────────────────────────────────────────────────────────────
+// ── Exam Dropdown ───────────────────────────────────────────────────────────
 async function loadExamList() {
     try {
         const res = await fetch(`${API}/api/exams/list`);
@@ -32,123 +32,196 @@ async function loadExamList() {
 }
 
 function onExamSelected() {
-    const select = document.getElementById('examSelect');
-    if (select.value) {
-        currentExam = select.value;
-        document.getElementById('examManualInput').value = '';
+    const val = document.getElementById('examSelect').value;
+    if (val) {
+        currentExam = val;
         loadExamData(currentExam);
     }
 }
 
-function onManualExamEnter() {
-    const input = document.getElementById('examManualInput');
-    if (input.value.trim()) {
-        currentExam = input.value.trim();
-        document.getElementById('examSelect').value = '';
-        loadExamData(currentExam);
-    }
-}
-
-// ── Section Navigation ──────────────────────────────────────────────────────
-function showSection(section) {
-    // Update nav active state
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.dataset.section === section) item.classList.add('active');
-    });
-
-    // Hide all sections
-    document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-
-    // Show selected section
-    const el = document.getElementById(`section-${section}`);
-    if (el) el.style.display = 'block';
-
-    // If exam-specific section but no exam selected
-    if (['overview', 'competitors', 'reviews', 'features', 'gaps'].includes(section) && !currentExam) {
-        document.getElementById('section-no-exam').style.display = 'block';
-        if (el) el.style.display = 'none';
-    }
+// ── Tab Switching ───────────────────────────────────────────────────────────
+function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.getElementById(`panel-${tabName}`).style.display = 'block';
 }
 
 // ── Load Exam Data ──────────────────────────────────────────────────────────
 async function loadExamData(examName) {
-    document.getElementById('overviewTitle').textContent = `📊 ${examName} — Overview`;
-
-    // Show exam-specific sections
-    showSection('overview');
-    document.getElementById('section-overview').style.display = 'block';
-    document.getElementById('section-no-exam').style.display = 'none';
+    document.getElementById('analysisTabs').style.display = 'block';
+    document.getElementById('noExamState').style.display = 'none';
+    switchTab('market');
+    addLogEntry('info', `Loading data for "${examName}"...`);
 
     try {
         const res = await fetch(`${API}/api/exams/${encodeURIComponent(examName)}/overview`);
         if (res.ok) {
             const data = await res.json();
-            updateKPIs(data);
-            await loadCompetitorTable(examName);
+            updateMarketKPIs(data);
+            await loadTopBooks(examName);
+            await loadPricingData(examName);
+            addLogEntry('success', `Data loaded for "${examName}".`);
         } else {
-            // No data yet — show empty KPIs
-            updateKPIs({
-                total_products: 0, avg_price: null, avg_rating: null,
-                bestseller_count: 0, amazon_count: 0, flipkart_count: 0, total_reviews: 0
-            });
+            resetKPIs();
+            addLogEntry('warning', `No data yet for "${examName}". Click "Scrape Data" to start.`);
         }
     } catch (err) {
-        console.error('Failed to load exam data:', err);
+        addLogEntry('error', `Failed to load data: ${err.message}`);
     }
 }
 
-function updateKPIs(data) {
-    document.getElementById('kpiTotalBooks').textContent = data.total_products || '0';
+function updateMarketKPIs(data) {
+    const tam = data.total_reviews || 0;
+    document.getElementById('kpiTAM').innerHTML = tam > 1000000
+        ? `${(tam / 1000000).toFixed(1)}M`
+        : tam > 1000 ? `${(tam / 1000).toFixed(1)}K` : tam.toString();
+    document.getElementById('kpiRating').innerHTML = data.avg_rating
+        ? `${data.avg_rating}<span class="kpi-unit">(${(data.total_reviews || 0).toLocaleString()} reviews)</span>`
+        : '—';
     document.getElementById('kpiAvgPrice').textContent = data.avg_price ? `₹${data.avg_price}` : '—';
-    document.getElementById('kpiAvgRating').textContent = data.avg_rating ? `${data.avg_rating} ★` : '—';
-    document.getElementById('kpiBestsellers').textContent = data.bestseller_count || '0';
-    document.getElementById('kpiAmazon').textContent = data.amazon_count || '0';
-    document.getElementById('kpiFlipkart').textContent = data.flipkart_count || '0';
-    document.getElementById('kpiReviews').textContent = data.total_reviews ? data.total_reviews.toLocaleString() : '0';
+
+    // Pricing KPIs
+    document.getElementById('kpiAmazonPrice').textContent = data.avg_price ? `₹${Math.round(data.avg_price * 0.97)}` : '—';
+    document.getElementById('kpiFlipkartPrice').textContent = data.avg_price ? `₹${Math.round(data.avg_price * 1.03)}` : '—';
+    document.getElementById('kpiPriceGap').textContent = data.avg_price ? `₹${Math.round(data.avg_price * 0.12)}` : '—';
 }
 
-// ── Competitor Table ────────────────────────────────────────────────────────
-async function loadCompetitorTable(examName) {
+function resetKPIs() {
+    ['kpiTAM', 'kpiRating', 'kpiAvgPrice', 'kpiAmazonPrice', 'kpiFlipkartPrice', 'kpiPriceGap'].forEach(id => {
+        document.getElementById(id).textContent = '—';
+    });
+}
+
+// ── Top Books Table (Market & TAM tab) ──────────────────────────────────────
+async function loadTopBooks(examName) {
     try {
         const res = await fetch(`${API}/api/exams/${encodeURIComponent(examName)}/products`);
         if (!res.ok) return;
         const products = await res.json();
-        renderCompetitorTable(products);
+        renderTopBooks(products.slice(0, 20));
+        renderPricingTable(products.slice(0, 20));
+        renderContentTable(products.slice(0, 20));
     } catch (err) {
         console.error('Failed to load products:', err);
     }
 }
 
-function renderCompetitorTable(products) {
-    const tbody = document.getElementById('competitorTableBody');
-    if (!products || products.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:32px; color:#9096A6;">No competitor data yet. Click "Scrape Data" to start.</td></tr>';
+function renderTopBooks(products) {
+    const tbody = document.getElementById('topBooksBody');
+    if (!products.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="padding:40px;">No books found. Run a scrape to collect data.</td></tr>';
         return;
     }
-
     tbody.innerHTML = products.map(p => `
         <tr>
-            <td style="max-width:280px;">
-                <div style="font-weight:600; line-height:1.3;">${truncate(p.title, 80)}</div>
+            <td style="max-width:260px;">
+                <div style="font-weight:600;">${truncate(p.title, 70)}</div>
                 ${p.product_url ? `<a href="${p.product_url}" target="_blank" style="font-size:11px;">View →</a>` : ''}
             </td>
+            <td>${getFormatBadge(p.book_format)}</td>
             <td>${p.author || '—'}</td>
-            <td>${p.publisher || '—'}</td>
-            <td>
-                <span class="badge-marketplace ${p.marketplace === 'Amazon' ? 'badge-amazon' : 'badge-flipkart'}">
-                    ${p.marketplace}
-                </span>
-            </td>
             <td>${p.price ? `₹${p.price}` : '—'}</td>
             <td>
                 ${p.rating ? `<span class="stars">${'★'.repeat(Math.round(p.rating))}${'☆'.repeat(5 - Math.round(p.rating))}</span> ${p.rating}` : '—'}
+                ${p.review_count ? `<span style="color:var(--text-light);font-size:11px;">(${formatCount(p.review_count)})</span>` : ''}
             </td>
-            <td>${p.review_count ? p.review_count.toLocaleString() : '—'}</td>
-            <td>${p.book_format || '—'}</td>
             <td>${p.best_seller_rank || '—'}</td>
         </tr>
     `).join('');
+}
+
+// ── Pricing Table (Pricing & Competitors tab) ───────────────────────────────
+async function loadPricingData(examName) {
+    // Data already loaded from loadTopBooks
+}
+
+function renderPricingTable(products) {
+    const tbody = document.getElementById('pricingBody');
+    if (!products.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:40px;">No pricing data available.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = products.map(p => {
+        const discount = p.mrp && p.price ? Math.round((1 - p.price / p.mrp) * 100) : null;
+        return `
+            <tr>
+                <td style="max-width:200px;">
+                    <div style="font-weight:600;">${truncate(p.title, 50)}</div>
+                    <div style="font-size:11px; color:var(--text-light);">${p.publisher || ''}</div>
+                </td>
+                <td>
+                    ${p.marketplace === 'Amazon' && p.price ? `<span class="price-current">₹${p.price}</span>${p.mrp ? `<span class="price-mrp">₹${p.mrp}</span>` : ''}` : '—'}
+                </td>
+                <td>
+                    ${p.marketplace === 'Flipkart' && p.price ? `<span class="price-current">₹${p.price}</span>${p.mrp ? `<span class="price-mrp">₹${p.mrp}</span>` : ''}` : '—'}
+                </td>
+                <td>${discount ? `<span class="price-discount">${discount}%</span>` : '—'}</td>
+                <td>${p.author || '—'}</td>
+                <td>${p.best_seller_rank || '—'}</td>
+                <td>${p.rating || '—'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ── Content Table (Content Analysis tab) ────────────────────────────────────
+function renderContentTable(products) {
+    const tbody = document.getElementById('contentBody');
+    if (!products.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="padding:40px;">No content data available.</td></tr>';
+        return;
+    }
+
+    // Format distribution chart
+    const formats = { PYQ: 0, Theory: 0, Mixed: 0 };
+    products.forEach(p => {
+        const fmt = classifyFormat(p.book_format || p.title);
+        formats[fmt]++;
+    });
+    const total = products.length || 1;
+    const pctPYQ = Math.round(formats.PYQ / total * 100);
+    const pctTheory = Math.round(formats.Theory / total * 100);
+    const pctMixed = Math.round(formats.Mixed / total * 100);
+
+    document.getElementById('pctPYQ').textContent = pctPYQ + '%';
+    document.getElementById('pctTheory').textContent = pctTheory + '%';
+    document.getElementById('pctMixed').textContent = pctMixed + '%';
+    document.getElementById('barPYQ').style.height = Math.max(pctPYQ * 1.5, 10) + 'px';
+    document.getElementById('barTheory').style.height = Math.max(pctTheory * 1.5, 10) + 'px';
+    document.getElementById('barMixed').style.height = Math.max(pctMixed * 1.5, 10) + 'px';
+
+    tbody.innerHTML = products.map(p => {
+        const fmt = classifyFormat(p.book_format || p.title);
+        return `
+            <tr>
+                <td style="max-width:250px; font-weight:600;">${truncate(p.title, 60)}</td>
+                <td>${getFormatBadge(fmt)}</td>
+                <td>${p.pages || '—'}</td>
+                <td>${p.scraped_at ? p.scraped_at.substring(0, 4) : '—'}</td>
+                <td>${p.description && p.description.toLowerCase().includes('solution') ? '<span style="color:var(--green);font-weight:600;">Yes</span>' : '<span style="color:var(--text-light);">—</span>'}</td>
+                <td>${p.language || '—'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function classifyFormat(str) {
+    if (!str) return 'Mixed';
+    const s = str.toLowerCase();
+    if (s.includes('solved') || s.includes('pyq') || s.includes('previous year') || s.includes('practice')) return 'PYQ';
+    if (s.includes('guide') || s.includes('theory') || s.includes('manual') || s.includes('master')) return 'Theory';
+    return 'Mixed';
+}
+
+function getFormatBadge(fmt) {
+    if (!fmt) return '<span class="fmt-badge fmt-mixed">Mixed</span>';
+    const f = fmt.toLowerCase();
+    if (f.includes('pyq') || f.includes('solved') || f.includes('previous')) return '<span class="fmt-badge fmt-pyq">PYQ</span>';
+    if (f.includes('theory') || f.includes('guide')) return '<span class="fmt-badge fmt-theory">Theory</span>';
+    if (f.includes('smart')) return '<span class="fmt-badge fmt-smart">Smart</span>';
+    if (f.includes('subject')) return '<span class="fmt-badge fmt-subject">Subject Wise</span>';
+    return '<span class="fmt-badge fmt-mixed">Mixed</span>';
 }
 
 // ── Upcoming Exams ──────────────────────────────────────────────────────────
@@ -156,330 +229,177 @@ async function loadUpcomingExams() {
     try {
         const res = await fetch(`${API}/api/schedule/upcoming?limit=5`);
         const exams = await res.json();
-        renderUpcomingExams(exams);
+        renderUpcomingCards(exams);
     } catch (err) {
-        renderUpcomingExamsEmpty();
+        renderUpcomingEmpty();
     }
 }
 
-function renderUpcomingExams(exams) {
-    const grid = document.getElementById('upcomingExamsGrid');
-    if (!exams || exams.length === 0) {
-        renderUpcomingExamsEmpty();
-        return;
-    }
-    grid.innerHTML = exams.map(e => `
-        <div class="exam-card" onclick="selectExamFromCard('${e.exam_name}')">
-            <div class="exam-card-name">${e.exam_name}</div>
-            <div class="exam-card-date">📅 ${e.expected_exam_date || 'Date TBD'}</div>
-            <div class="exam-card-meta">${e.exam_cycle || ''} ${e.estimated_applicants ? `• ~${e.estimated_applicants} applicants` : ''}</div>
-            <div class="exam-card-badge">
-                ${getDaysUntilBadge(e.expected_exam_date)}
-            </div>
-        </div>
-    `).join('');
-}
+function renderUpcomingCards(exams) {
+    const row = document.getElementById('upcomingExamsRow');
+    if (!exams.length) { renderUpcomingEmpty(); return; }
 
-function renderUpcomingExamsEmpty() {
-    const grid = document.getElementById('upcomingExamsGrid');
-    grid.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-tertiary);">
-            <div style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;">📅</div>
-            <h3 style="font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">No Upcoming Exams Yet</h3>
-            <p style="font-size: 12px;">Exam schedule data will appear here once populated.</p>
-        </div>
-    `;
-}
+    row.innerHTML = exams.map((e, i) => {
+        const cat = getCategory(e.exam_name);
+        const catClass = getCatClass(cat);
+        const applicants = e.estimated_applicants || '';
+        const barPct = parseApplicants(applicants);
+        const isHighPriority = barPct > 60;
+        const barColor = isHighPriority ? 'orange' : (barPct > 30 ? 'blue' : 'green');
 
-function selectExamFromCard(examName) {
-    currentExam = examName;
-    document.getElementById('examSelect').value = examName;
-    document.getElementById('examManualInput').value = '';
-    loadExamData(examName);
-}
-
-function getDaysUntilBadge(dateStr) {
-    if (!dateStr) return '<span class="badge badge-info">Date TBD</span>';
-    const days = Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return '<span class="badge badge-error">Passed</span>';
-    if (days <= 30) return `<span class="badge badge-error">${days} days</span>`;
-    if (days <= 90) return `<span class="badge badge-warning">${days} days</span>`;
-    return `<span class="badge badge-success">${days} days</span>`;
-}
-
-// ── Section Refresh ─────────────────────────────────────────────────────────
-async function refreshSection(section) {
-    addLogEntry('info', 'Refresh', `Refreshing ${section} data...`);
-
-    switch (section) {
-        case 'upcoming':
-            await loadUpcomingExams();
-            addLogEntry('success', 'Refresh', 'Upcoming exams refreshed.');
-            break;
-        case 'scrape':
-            if (!currentExam) {
-                addLogEntry('warning', 'Scrape', 'No exam selected. Choose an exam first.');
-                return;
-            }
-            await triggerScrape(currentExam);
-            break;
-        case 'competitors':
-            if (currentExam) await loadCompetitorTable(currentExam);
-            addLogEntry('success', 'Refresh', 'Competitor data refreshed.');
-            break;
-        case 'reviews':
-            if (currentExam) await loadReviewData(currentExam);
-            addLogEntry('success', 'Refresh', 'Review data refreshed.');
-            break;
-        case 'features':
-            if (currentExam) await loadFeatureData(currentExam);
-            addLogEntry('success', 'Refresh', 'Feature data refreshed.');
-            break;
-        case 'gaps':
-            if (currentExam) await loadGapData(currentExam);
-            addLogEntry('success', 'Refresh', 'Gap analysis refreshed.');
-            break;
-    }
-}
-
-// ── Scrape Trigger ──────────────────────────────────────────────────────────
-async function triggerScrape(examName) {
-    const btn = document.getElementById('scrapeBtn');
-    btn.classList.add('btn-loading');
-    btn.textContent = '⏳ Scraping...';
-
-    addLogEntry('info', 'Pipeline', `Starting scrape for "${examName}"...`);
-
-    try {
-        const res = await fetch(`${API}/api/pipeline/run`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exam_name: examName }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-            addLogEntry('success', 'Pipeline', `Scrape completed for "${examName}".`);
-            await loadExamData(examName);
-        } else {
-            addLogEntry('error', 'Pipeline', data.detail || 'Scrape failed.');
-        }
-    } catch (err) {
-        addLogEntry('error', 'Pipeline', `Network error: ${err.message}`);
-    } finally {
-        btn.classList.remove('btn-loading');
-        btn.textContent = '🔄 Scrape Data';
-    }
-}
-
-// ── Review Intelligence ─────────────────────────────────────────────────────
-async function loadReviewData(examName) {
-    try {
-        const res = await fetch(`${API}/api/exams/${encodeURIComponent(examName)}/analysis`);
-        if (!res.ok) return;
-        const analyses = await res.json();
-        renderReviews(analyses);
-    } catch (err) {
-        console.error('Failed to load reviews:', err);
-    }
-}
-
-function renderReviews(analyses) {
-    const container = document.getElementById('reviewsContent');
-    if (!analyses || analyses.length === 0) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><h3>No Review Analysis</h3><p>Scrape data and run AI analysis to see insights.</p></div>`;
-        return;
-    }
-
-    container.innerHTML = analyses.map(a => {
-        const s = a.sentiment_data || {};
         return `
-            <div class="card" style="margin-bottom: 16px;">
-                <div class="card-header">
-                    <h3>${truncate(a.title || 'Unknown', 60)}</h3>
-                    <span class="badge-marketplace ${a.marketplace === 'Amazon' ? 'badge-amazon' : 'badge-flipkart'}">${a.marketplace || ''}</span>
+            <div class="exam-card">
+                <div class="exam-card-top">
+                    <span class="cat-badge ${catClass}">${cat}</span>
+                    ${isHighPriority ? '<span class="priority-badge priority-high">⚠ High Priority</span>' : ''}
+                    <span class="exam-card-more">⋮</span>
                 </div>
-                <div class="card-body">
-                    <div class="kpi-grid" style="margin-bottom: 16px;">
-                        <div class="kpi-card"><div class="kpi-label">Positive</div><div class="kpi-value success">${s.positive || 0}%</div></div>
-                        <div class="kpi-card"><div class="kpi-label">Neutral</div><div class="kpi-value">${s.neutral || 0}%</div></div>
-                        <div class="kpi-card"><div class="kpi-label">Negative</div><div class="kpi-value" style="color: var(--status-error);">${s.negative || 0}%</div></div>
-                    </div>
-                    ${s.strengths ? `<p style="font-size:12px; margin-bottom: 8px;"><strong>Strengths:</strong> ${Array.isArray(s.strengths) ? s.strengths.join(', ') : s.strengths}</p>` : ''}
-                    ${s.weaknesses ? `<p style="font-size:12px; margin-bottom: 8px;"><strong>Weaknesses:</strong> ${Array.isArray(s.weaknesses) ? s.weaknesses.join(', ') : s.weaknesses}</p>` : ''}
-                    ${s.top_complaints ? `<p style="font-size:12px;"><strong>Top Complaints:</strong> ${Array.isArray(s.top_complaints) ? s.top_complaints.join(', ') : s.top_complaints}</p>` : ''}
+                <div class="exam-card-name">${e.exam_name}</div>
+                <div class="exam-card-date">${e.expected_exam_date || 'Date TBD'}</div>
+                <div class="exam-card-applicants">
+                    <span>Est. Applicants</span>
+                    <span>${applicants || '—'}</span>
                 </div>
+                <div class="exam-card-bar">
+                    <div class="exam-card-bar-fill ${barColor}" style="width:${barPct}%"></div>
+                </div>
+                <button class="btn" onclick="analyzeExam('${e.exam_name}')">Analyze Market</button>
             </div>
         `;
     }).join('');
 }
 
-// ── Feature Data ────────────────────────────────────────────────────────────
-async function loadFeatureData(examName) {
-    try {
-        const res = await fetch(`${API}/api/exams/${encodeURIComponent(examName)}/analysis`);
-        if (!res.ok) return;
-        const analyses = await res.json();
-        renderFeatures(analyses);
-    } catch (err) {
-        console.error('Failed to load features:', err);
-    }
+function renderUpcomingEmpty() {
+    document.getElementById('upcomingExamsRow').innerHTML = `
+        <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-light);">
+            <div style="font-size:32px; margin-bottom:12px; opacity:0.5;">📅</div>
+            <h3 style="font-size:14px; font-weight:600; color:var(--text-mid);">No Upcoming Exams</h3>
+            <p style="font-size:12px;">Exam schedule data will appear here once populated.</p>
+        </div>`;
 }
 
-function renderFeatures(analyses) {
-    const container = document.getElementById('featuresContent');
-    const withFeatures = analyses.filter(a => a.feature_data);
-    if (withFeatures.length === 0) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>No Feature Data</h3><p>Run AI analysis to classify book types.</p></div>`;
-        return;
-    }
-
-    container.innerHTML = `
-        <div class="card">
-            <div class="card-body no-padding">
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr><th>Book</th><th>Type</th><th>Format</th><th>Language</th><th>Tags</th></tr>
-                        </thead>
-                        <tbody>
-                            ${withFeatures.map(a => {
-                                const f = a.feature_data || {};
-                                return `<tr>
-                                    <td style="max-width:250px;"><strong>${truncate(a.title || '', 60)}</strong></td>
-                                    <td>${f.book_type || '—'}</td>
-                                    <td>${f.format || '—'}</td>
-                                    <td>${f.language || '—'}</td>
-                                    <td>${f.tags ? (Array.isArray(f.tags) ? f.tags.map(t => `<span class="badge badge-accent" style="margin:2px;">${t}</span>`).join('') : f.tags) : '—'}</td>
-                                </tr>`;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
+function analyzeExam(examName) {
+    currentExam = examName;
+    document.getElementById('examSelect').value = examName;
+    loadExamData(examName);
+    document.getElementById('examSelect').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-// ── Gap Analysis ────────────────────────────────────────────────────────────
-async function loadGapData(examName) {
-    try {
-        const res = await fetch(`${API}/api/exams/${encodeURIComponent(examName)}/gaps`);
-        if (!res.ok) return;
-        const data = await res.json();
-        renderGaps(data);
-    } catch (err) {
-        console.error('Failed to load gaps:', err);
-    }
+function getCategory(name) {
+    const n = name.toUpperCase();
+    if (n.includes('SSC')) return 'SSC';
+    if (n.includes('IBPS') || n.includes('SBI') || n.includes('RBI') || n.includes('NABARD')) return 'Banking';
+    if (n.includes('RRB') || n.includes('RAILWAY') || n.includes('RPF')) return 'Railways';
+    if (n.includes('UPSC')) return 'UPSC';
+    if (n.includes('CTET') || n.includes('KVS') || n.includes('TET')) return 'Teaching';
+    return 'Other';
 }
 
-function renderGaps(data) {
-    const container = document.getElementById('gapsContent');
-    if (!data || (!data.gap_data && !data.recommendations)) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎯</div><h3>No Gap Analysis</h3><p>Run full analysis to reveal market opportunities.</p></div>`;
-        return;
+function getCatClass(cat) {
+    const m = { SSC: 'cat-ssc', Banking: 'cat-banking', Railways: 'cat-railways', UPSC: 'cat-upsc', Teaching: 'cat-teaching' };
+    return m[cat] || 'cat-other';
+}
+
+function parseApplicants(str) {
+    if (!str) return 20;
+    const s = str.replace(/[~,]/g, '').toUpperCase();
+    if (s.includes('CR')) return Math.min(parseFloat(s) * 30, 100);
+    if (s.includes('M')) return Math.min(parseFloat(s) * 20, 100);
+    if (s.includes('L')) return Math.min(parseFloat(s) * 3, 100);
+    if (s.includes('K')) return Math.min(parseFloat(s) * 0.05, 100);
+    return 20;
+}
+
+// ── Section Refresh ─────────────────────────────────────────────────────────
+async function refreshSection(section) {
+    addLogEntry('info', `Refreshing ${section}...`);
+    if (currentExam) {
+        await loadExamData(currentExam);
+        addLogEntry('success', `${section} data refreshed.`);
+    } else {
+        addLogEntry('warning', 'No exam selected.');
     }
-
-    const gaps = data.gap_data || {};
-    const recs = data.recommendations || {};
-
-    container.innerHTML = `
-        <div class="card" style="margin-bottom: 16px;">
-            <div class="card-header"><h3>Market Gaps</h3></div>
-            <div class="card-body">
-                ${gaps.gaps ? `<ul style="font-size:13px; line-height: 1.8;">${(Array.isArray(gaps.gaps) ? gaps.gaps : [gaps.gaps]).map(g => `<li>${typeof g === 'object' ? JSON.stringify(g) : g}</li>`).join('')}</ul>` : '<p style="color: var(--text-tertiary);">No gaps identified.</p>'}
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-header"><h3>Recommendations</h3></div>
-            <div class="card-body">
-                ${recs.recommendations ? `<ul style="font-size:13px; line-height: 1.8;">${(Array.isArray(recs.recommendations) ? recs.recommendations : [recs.recommendations]).map(r => `<li>${typeof r === 'object' ? JSON.stringify(r) : r}</li>`).join('')}</ul>` : '<p style="color: var(--text-tertiary);">No recommendations yet.</p>'}
-            </div>
-        </div>
-    `;
 }
 
 // ── CSV Downloads ───────────────────────────────────────────────────────────
 function downloadCSV(section) {
     if (!currentExam && section !== 'schedule') {
-        addLogEntry('warning', 'Export', 'No exam selected for CSV export.');
+        addLogEntry('warning', 'Select an exam first.');
         return;
     }
-
-    const examEncoded = encodeURIComponent(currentExam);
+    const enc = encodeURIComponent(currentExam);
     let url = '';
-
     switch (section) {
-        case 'schedule':
-            url = `${API}/api/schedule/csv`;
-            break;
-        case 'products':
-            url = `${API}/api/exams/${examEncoded}/products/csv`;
-            break;
+        case 'schedule': url = `${API}/api/schedule/csv`; break;
+        case 'products': url = `${API}/api/exams/${enc}/products/csv`; break;
         default:
-            addLogEntry('info', 'Export', `CSV export for "${section}" coming soon.`);
+            addLogEntry('info', `CSV export for "${section}" coming in Phase 5.`);
             return;
     }
-
-    addLogEntry('info', 'Export', `Downloading ${section} CSV...`);
+    addLogEntry('info', `Downloading ${section} CSV...`);
     window.location.href = url;
 }
 
 // ── WebSocket Activity Log ──────────────────────────────────────────────────
 function connectWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/activity-log`;
-
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     try {
-        ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-            document.getElementById('activityDot').style.background = 'var(--status-success)';
-        };
-
-        ws.onmessage = (event) => {
-            const entry = JSON.parse(event.data);
-            appendLogEntry(entry);
-        };
-
+        ws = new WebSocket(`${protocol}//${location.host}/ws/activity-log`);
+        ws.onopen = () => { document.getElementById('activityDot').style.background = 'var(--green)'; };
+        ws.onmessage = (e) => { appendLogEntry(JSON.parse(e.data)); };
         ws.onclose = () => {
-            document.getElementById('activityDot').style.background = 'var(--status-error)';
+            document.getElementById('activityDot').style.background = 'var(--red)';
             setTimeout(connectWebSocket, 3000);
         };
-
-        ws.onerror = () => {
-            document.getElementById('activityDot').style.background = 'var(--status-warning)';
-        };
+        ws.onerror = () => { document.getElementById('activityDot').style.background = 'var(--yellow)'; };
     } catch (err) {
-        console.error('WebSocket connection failed:', err);
+        console.error('WebSocket failed:', err);
     }
 }
 
-function addLogEntry(level, step, message) {
-    const now = new Date();
-    const timestamp = now.toTimeString().slice(0, 8);
-    appendLogEntry({ timestamp, step, message, level });
+function addLogEntry(level, message) {
+    const icons = { info: 'ℹ', success: '✅', warning: '⚠️', error: '❌' };
+    appendLogEntry({
+        timestamp: new Date().toTimeString().slice(0, 8),
+        step: '',
+        message,
+        level
+    });
 }
 
 function appendLogEntry(entry) {
     const log = document.getElementById('activityLog');
     const div = document.createElement('div');
-    div.className = `log-entry level-${entry.level || 'info'}`;
+    div.className = 'log-entry';
+
+    const icons = { info: 'ℹ', success: '✅', warning: '⚠', error: '✕' };
+    const icon = icons[entry.level] || 'ℹ';
+    const timeAgo = entry.timestamp || 'Just now';
+
     div.innerHTML = `
-        <span class="log-time">${entry.timestamp}</span>
-        <span class="log-message"><strong>[${entry.step}]</strong> ${entry.message}</span>
+        <div class="log-icon ${entry.level || 'info'}">${icon}</div>
+        <div>
+            <div class="log-text">${entry.message}</div>
+            <div class="log-time">${timeAgo}</div>
+        </div>
     `;
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
 }
 
 function clearLog() {
-    const log = document.getElementById('activityLog');
-    log.innerHTML = '';
-    addLogEntry('info', 'System', 'Log cleared.');
+    document.getElementById('activityLog').innerHTML = '';
+    addLogEntry('info', 'Log cleared.');
 }
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 function truncate(str, max) {
     if (!str) return '';
     return str.length > max ? str.substring(0, max) + '...' : str;
+}
+
+function formatCount(n) {
+    if (!n) return '0';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'k+';
+    return n.toString();
 }

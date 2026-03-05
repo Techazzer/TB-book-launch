@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-> **Current Phase**: Not started
+> **Current Phase**: Phase 2 — Upcoming Exams Module
 > **Milestone**: v1.0 — MVP Product Launch Dashboard
 
 ## Must-Haves (from SPEC)
@@ -18,7 +18,7 @@
 ## Phases
 
 ### Phase 1: Foundation & Backend
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Set up project structure, database schema, FastAPI backend, and basic Stitch-designed frontend shell
 **Deliverables**:
 - Project structure with FastAPI + static frontend

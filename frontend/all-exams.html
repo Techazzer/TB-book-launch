@@ -4,92 +4,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Upcoming Exams — Product Launch Dashboard</title>
+    <title>All Upcoming Exams — Testbook Catalog Planner</title>
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 
 <body>
-    <div style="max-width: 1100px; margin: 0 auto; padding: 32px;">
+
+    <!-- ─── Top Navigation ─────────────────────────────────────────── -->
+    <header class="topbar">
+        <a href="/" class="topbar-brand">
+            <span class="topbar-brand-icon">📘</span>
+            Testbook Catalog Planner
+        </a>
+        <nav class="topbar-nav">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/all-exams" class="active">Exams</a>
+        </nav>
+        <div class="topbar-right">
+            <span class="topbar-bell">🔔</span>
+            <div class="topbar-avatar">TB</div>
+        </div>
+    </header>
+
+    <!-- ─── Page Content ───────────────────────────────────────────── -->
+    <div class="page-container">
+        <div class="breadcrumb">
+            <a href="/dashboard">Dashboard</a> &gt; <span>Upcoming Exams</span>
+        </div>
+
         <div class="page-header">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <a href="/dashboard" class="btn btn-sm">← Back to Dashboard</a>
+            <div class="page-header-text">
+                <h1>All Upcoming Exams List</h1>
+                <p>View and manage upcoming government exams for the next 6-12 months. Data sourced from official
+                    notifications and internal estimates.</p>
             </div>
-            <h2>📅 All Upcoming Exams</h2>
-            <p>Complete list of exams expected in the next 6 months</p>
             <div class="page-header-actions">
-                <button class="btn btn-sm" onclick="refreshAllExams()">🔄 Refresh</button>
-                <button class="btn btn-sm" onclick="downloadAllExamsCSV()">📥 Download CSV</button>
+                <button class="btn" onclick="refreshExams()">🔄 Refresh Data</button>
+                <button class="btn btn-primary" onclick="downloadCSV()">📥 Download CSV</button>
             </div>
         </div>
 
+        <!-- Search & Filters -->
+        <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search exams by name, category..."
+                oninput="filterExams()">
+            <div class="filter-tabs" id="filterTabs">
+                <span class="filter-tab active" onclick="filterByCategory('all')">All Categories</span>
+                <span class="filter-tab" onclick="filterByCategory('SSC')">SSC</span>
+                <span class="filter-tab" onclick="filterByCategory('Banking')">Banking</span>
+                <span class="filter-tab" onclick="filterByCategory('Railways')">Railways</span>
+                <span class="filter-tab" onclick="filterByCategory('State Govt')">State Govt</span>
+            </div>
+        </div>
+
+        <!-- Table Card -->
         <div class="card">
-            <div class="card-body no-padding">
-                <div class="table-wrapper" style="max-height: none;">
-                    <table class="data-table" id="allExamsTable">
+            <!-- Entries Bar -->
+            <div class="entries-bar">
+                Show
+                <select class="entries-select" id="entriesSelect" onchange="updatePageSize()">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+                entries
+            </div>
+
+            <div class="card-body flush">
+                <div class="table-wrapper">
+                    <table class="data-table" id="examsTable">
                         <thead>
                             <tr>
                                 <th>Exam Name</th>
+                                <th>Category</th>
                                 <th>Notification Date</th>
-                                <th>Application Start</th>
-                                <th>Application End</th>
-                                <th>Expected Exam Date</th>
-                                <th>Cycle</th>
-                                <th>Est. Applicants</th>
+                                <th>Application Window</th>
+                                <th>Tentative Exam</th>
+                                <th>Est. TAM</th>
                                 <th>Source</th>
+                                <th></th>
                             </tr>
                         </thead>
-                        <tbody id="allExamsTableBody">
+                        <tbody id="examsTableBody">
                             <!-- Populated by JS -->
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <div class="table-footer">
+                <span id="tableInfo">Showing 0 entries</span>
+                <div class="pagination" id="pagination"></div>
             </div>
         </div>
     </div>
 
     <script>
         const API = '';
+        let allExams = [];
+        let filteredExams = [];
+        let currentPage = 1;
+        let pageSize = 10;
+        let currentCategory = 'all';
 
-        async function loadAllExams() {
+        document.addEventListener('DOMContentLoaded', loadExams);
+
+        async function loadExams() {
             try {
                 const res = await fetch(`${API}/api/schedule/all`);
-                const data = await res.json();
-                renderAllExamsTable(data);
+                allExams = await res.json();
+                filteredExams = [...allExams];
+                renderTable();
             } catch (err) {
-                document.getElementById('allExamsTableBody').innerHTML =
-                    '<tr><td colspan="8" style="text-align:center; padding:40px; color: #9096A6;">No exam schedule data available yet. Add data or run a scrape.</td></tr>';
+                document.getElementById('examsTableBody').innerHTML =
+                    '<tr><td colspan="8" class="empty-state" style="padding:48px;">No exam schedule data available yet.</td></tr>';
             }
         }
 
-        function renderAllExamsTable(exams) {
-            const tbody = document.getElementById('allExamsTableBody');
-            if (!exams || exams.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color: #9096A6;">No exam schedule data available.</td></tr>';
-                return;
+        function getCategory(examName) {
+            const n = examName.toUpperCase();
+            if (n.includes('SSC')) return 'SSC';
+            if (n.includes('IBPS') || n.includes('SBI') || n.includes('RBI') || n.includes('NABARD') || n.includes('SEBI') || n.includes('CLERK') || n.includes('PO ')) return 'Banking';
+            if (n.includes('RRB') || n.includes('RAILWAY') || n.includes('RPF')) return 'Railways';
+            if (n.includes('UPSC')) return 'UPSC';
+            if (n.includes('CTET') || n.includes('KVS') || n.includes('NVS') || n.includes('TET') || n.includes('DSSSB')) return 'Teaching';
+            if (n.includes('BPSC') || n.includes('UPPSC') || n.includes('MPPSC') || n.includes('RPSC')) return 'State Govt';
+            if (n.includes('NDA') || n.includes('CDS') || n.includes('AFCAT') || n.includes('NAVY') || n.includes('AIR FORCE')) return 'Defense';
+            return 'Other';
+        }
+
+        function getCatClass(cat) {
+            const map = { 'SSC': 'cat-ssc', 'Banking': 'cat-banking', 'Railways': 'cat-railways', 'UPSC': 'cat-upsc', 'Teaching': 'cat-teaching', 'State Govt': 'cat-other', 'Defense': 'cat-defense' };
+            return map[cat] || 'cat-other';
+        }
+
+        function getSourceBadge(source) {
+            if (!source) return '—';
+            const s = source.toLowerCase();
+            if (s.includes('official')) return '<span class="source-badge source-official">✅ Official</span>';
+            if (s.includes('blog')) return '<span class="source-badge source-blog">📄 Blog Est.</span>';
+            if (s.includes('news')) return '<span class="source-badge source-news">📄 News Est.</span>';
+            return `<span class="source-badge">${source}</span>`;
+        }
+
+        function filterByCategory(cat) {
+            currentCategory = cat;
+            currentPage = 1;
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            applyFilters();
+        }
+
+        function filterExams() {
+            currentPage = 1;
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            filteredExams = allExams.filter(e => {
+                const cat = getCategory(e.exam_name);
+                const matchesCat = currentCategory === 'all' || cat === currentCategory;
+                const matchesSearch = !search || e.exam_name.toLowerCase().includes(search) || cat.toLowerCase().includes(search);
+                return matchesCat && matchesSearch;
+            });
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('examsTableBody');
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageItems = filteredExams.slice(start, end);
+
+            if (pageItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state" style="padding:40px;">No exams match your filters.</td></tr>';
+            } else {
+                tbody.innerHTML = pageItems.map(e => {
+                    const cat = getCategory(e.exam_name);
+                    return `<tr>
+                        <td>
+                            <div style="font-weight:700;">${e.exam_name}</div>
+                            <div style="font-size:11px; color:var(--text-light);">${e.notes || ''}</div>
+                        </td>
+                        <td><span class="cat-badge ${getCatClass(cat)}">${cat}</span></td>
+                        <td>${e.notification_date || '—'}</td>
+                        <td>${e.application_start && e.application_end ? `${e.application_start} → ${e.application_end}` : (e.application_start || '<em style="color:var(--text-light)">TBD</em>')}</td>
+                        <td style="color: var(--brand); font-weight:600;">${e.expected_exam_date || 'TBD'}</td>
+                        <td>${e.estimated_applicants ? `~${e.estimated_applicants}` : '—'}</td>
+                        <td>${getSourceBadge(e.source_name)}</td>
+                        <td style="cursor:pointer; color:var(--text-light);">⋮</td>
+                    </tr>`;
+                }).join('');
             }
-            tbody.innerHTML = exams.map(e => `
-                <tr>
-                    <td><strong>${e.exam_name || ''}</strong></td>
-                    <td>${e.notification_date || '—'}</td>
-                    <td>${e.application_start || '—'}</td>
-                    <td>${e.application_end || '—'}</td>
-                    <td><span class="badge badge-accent">${e.expected_exam_date || 'TBD'}</span></td>
-                    <td>${e.exam_cycle || '—'}</td>
-                    <td>${e.estimated_applicants || '—'}</td>
-                    <td>${e.source_name ? `<a href="${e.source_url || '#'}" target="_blank">${e.source_name}</a>` : '—'}</td>
-                </tr>
-            `).join('');
+
+            document.getElementById('tableInfo').textContent =
+                `Showing ${start + 1} to ${Math.min(end, filteredExams.length)} of ${filteredExams.length} entries`;
+
+            renderPagination();
         }
 
-        async function refreshAllExams() {
-            loadAllExams();
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredExams.length / pageSize);
+            const pag = document.getElementById('pagination');
+            if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+            let html = `<span class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'style="opacity:0.4;pointer-events:none;"' : ''}>&lt;</span>`;
+            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+                html += `<span class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</span>`;
+            }
+            if (totalPages > 5) html += `<span style="padding:0 4px;">…</span>`;
+            html += `<span class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'style="opacity:0.4;pointer-events:none;"' : ''}>&gt;</span>`;
+            pag.innerHTML = html;
         }
 
-        async function downloadAllExamsCSV() {
-            window.location.href = `${API}/api/schedule/csv`;
+        function goPage(p) {
+            const totalPages = Math.ceil(filteredExams.length / pageSize);
+            if (p < 1 || p > totalPages) return;
+            currentPage = p;
+            renderTable();
         }
 
-        loadAllExams();
+        function updatePageSize() {
+            pageSize = parseInt(document.getElementById('entriesSelect').value);
+            currentPage = 1;
+            renderTable();
+        }
+
+        async function refreshExams() { await loadExams(); }
+        function downloadCSV() { window.location.href = `${API}/api/schedule/csv`; }
     </script>
 </body>
 

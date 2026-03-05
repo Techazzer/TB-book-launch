@@ -4,162 +4,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard — Product Launch</title>
+    <title>Dashboard — Testbook Catalog Planner</title>
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 
 <body>
-    <div class="app-container">
 
-        <!-- ─── Sidebar ──────────────────────────────────────────────── -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <div class="sidebar-brand-icon">📚</div>
-                    <div>
-                        <h1>Product Launch</h1>
-                        <span>Testbook Intelligence</span>
-                    </div>
-                </div>
+    <!-- ─── Top Navigation ─────────────────────────────────────────── -->
+    <header class="topbar">
+        <a href="/" class="topbar-brand">
+            <span class="topbar-brand-icon">📘</span>
+            Book Launch
+        </a>
+        <nav class="topbar-nav">
+            <a href="/dashboard" class="active">Dashboard</a>
+            <a href="/all-exams">Exams</a>
+        </nav>
+        <div class="topbar-right">
+            <span class="topbar-bell">🔔</span>
+            <div class="topbar-avatar">TB</div>
+        </div>
+    </header>
+
+    <!-- ─── Main Page ──────────────────────────────────────────────── -->
+    <div class="page-container page-with-log">
+        <div class="page-main">
+
+            <!-- ── Upcoming Exams ──────────────────────────────────── -->
+            <div class="section-bar">
+                <h2 class="section-title">📋 Upcoming Exams (Next 6 Months)</h2>
+                <a href="/all-exams" class="view-all-link">View All Exams →</a>
             </div>
 
-            <nav class="sidebar-nav">
-                <div class="nav-section-title">Dashboard</div>
-                <a class="nav-item active" data-section="upcoming" onclick="showSection('upcoming')">
-                    <span class="nav-item-icon">📅</span> Upcoming Exams
-                </a>
-                <a class="nav-item" data-section="overview" onclick="showSection('overview')">
-                    <span class="nav-item-icon">📊</span> Exam Overview
-                </a>
-                <a class="nav-item" data-section="competitors" onclick="showSection('competitors')">
-                    <span class="nav-item-icon">📚</span> Competitor Books
-                </a>
-                <a class="nav-item" data-section="reviews" onclick="showSection('reviews')">
-                    <span class="nav-item-icon">💬</span> Review Intelligence
-                </a>
-                <a class="nav-item" data-section="features" onclick="showSection('features')">
-                    <span class="nav-item-icon">🔍</span> Book Features
-                </a>
-                <a class="nav-item" data-section="gaps" onclick="showSection('gaps')">
-                    <span class="nav-item-icon">🎯</span> Product Gaps
-                </a>
-            </nav>
-
-            <!-- Exam Selector -->
-            <div class="exam-selector">
-                <label for="examSelect">Select Exam</label>
-                <div class="exam-select-wrapper">
-                    <select class="exam-select" id="examSelect" onchange="onExamSelected()">
-                        <option value="">— Choose an exam —</option>
-                    </select>
-                </div>
-                <input type="text" class="exam-manual-input" id="examManualInput" placeholder="or type exam name..."
-                    onkeydown="if(event.key==='Enter') onManualExamEnter()">
+            <div class="exam-cards-row" id="upcomingExamsRow">
+                <!-- Populated by JS -->
             </div>
-        </aside>
 
-        <!-- ─── Main Content ─────────────────────────────────────────── -->
-        <div class="main-area with-log" id="mainArea">
-            <div class="content" id="content">
+            <!-- ── Exam Selector ───────────────────────────────────── -->
+            <div class="exam-selector-box">
+                <label>Select Exam for Detailed Analysis</label>
+                <select class="exam-select" id="examSelect" onchange="onExamSelected()">
+                    <option value="">— Choose an exam —</option>
+                </select>
+            </div>
 
-                <!-- Section: Upcoming Exams -->
-                <div class="section" id="section-upcoming">
-                    <div class="section-header">
-                        <h2 class="section-title">📅 Upcoming Exams</h2>
-                        <div class="section-actions">
-                            <button class="btn btn-sm" onclick="refreshSection('upcoming')"
-                                data-tooltip="Refresh exam schedule">
-                                🔄 Refresh
-                            </button>
-                            <button class="btn btn-sm" onclick="downloadCSV('schedule')" data-tooltip="Export as CSV">
-                                📥 CSV
-                            </button>
-                        </div>
-                    </div>
-                    <div id="upcomingExamsContent">
-                        <div class="exam-cards-grid" id="upcomingExamsGrid">
-                            <!-- Populated by JS -->
-                        </div>
-                        <a class="show-all-link" href="/all-exams">Show All Exams →</a>
-                    </div>
+            <!-- ── Analysis Tabs ───────────────────────────────────── -->
+            <div id="analysisTabs" style="display:none;">
+                <div class="tabs">
+                    <div class="tab active" data-tab="market" onclick="switchTab('market')">Market & TAM</div>
+                    <div class="tab" data-tab="pricing" onclick="switchTab('pricing')">Pricing & Competitors</div>
+                    <div class="tab" data-tab="content" onclick="switchTab('content')">Content Analysis</div>
+                    <div class="tab" data-tab="sentiment" onclick="switchTab('sentiment')">Sentiment & Gaps</div>
                 </div>
 
-                <!-- Section: Exam Overview (shown after exam selection) -->
-                <div class="section" id="section-overview" style="display:none;">
-                    <div class="section-header">
-                        <h2 class="section-title" id="overviewTitle">📊 Exam Overview</h2>
-                        <div class="section-actions">
-                            <button class="btn btn-sm btn-primary" onclick="refreshSection('scrape')" id="scrapeBtn">
-                                🔄 Scrape Data
-                            </button>
-                            <button class="btn btn-sm" onclick="downloadCSV('products')"
-                                data-tooltip="Export products CSV">
-                                📥 CSV
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- KPI Cards -->
-                    <div class="kpi-grid" id="kpiGrid">
+                <!-- ── Tab: Market & TAM ───────────────────────────── -->
+                <div class="tab-panel" id="panel-market">
+                    <div class="kpi-row" id="marketKpis">
                         <div class="kpi-card">
-                            <div class="kpi-label">Total Books</div>
-                            <div class="kpi-value accent" id="kpiTotalBooks">—</div>
+                            <div class="kpi-card-header">
+                                <span class="kpi-label">📊 Total Addressable Market</span>
+                            </div>
+                            <div class="kpi-value" id="kpiTAM">—</div>
+                            <div class="kpi-desc" id="kpiTAMDesc">Estimated applicants based on past cycles.</div>
                         </div>
                         <div class="kpi-card">
-                            <div class="kpi-label">Avg Price</div>
+                            <div class="kpi-card-header">
+                                <span class="kpi-label">⭐ Average Rating</span>
+                            </div>
+                            <div class="kpi-value" id="kpiRating">—<span class="kpi-unit" id="kpiRatingCount"></span>
+                            </div>
+                            <div class="kpi-desc">Aggregate rating across all platforms.</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <span class="kpi-label">₹ Category Avg. Price</span>
+                            </div>
                             <div class="kpi-value" id="kpiAvgPrice">—</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Avg Rating</div>
-                            <div class="kpi-value success" id="kpiAvgRating">—</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Bestsellers</div>
-                            <div class="kpi-value warning" id="kpiBestsellers">—</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Amazon</div>
-                            <div class="kpi-value" id="kpiAmazon">—</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Flipkart</div>
-                            <div class="kpi-value" id="kpiFlipkart">—</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Total Reviews</div>
-                            <div class="kpi-value" id="kpiReviews">—</div>
+                            <div class="kpi-desc">Median price across Amazon & Flipkart top 50.</div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Section: Competitor Books -->
-                <div class="section" id="section-competitors" style="display:none;">
-                    <div class="section-header">
-                        <h2 class="section-title">📚 Competitor Books</h2>
-                        <div class="section-actions">
-                            <button class="btn btn-sm" onclick="refreshSection('competitors')">🔄 Refresh</button>
-                            <button class="btn btn-sm" onclick="downloadCSV('products')">📥 CSV</button>
-                        </div>
-                    </div>
+                    <!-- Top 20 Ranked Books -->
                     <div class="card">
-                        <div class="card-body no-padding">
+                        <div class="card-header">
+                            <h3>Top 20 Ranked Books list Marketplace wise and their details</h3>
+                            <div class="card-actions">
+                                <button class="btn btn-sm" onclick="downloadCSV('products')">📥 CSV</button>
+                                <button class="btn btn-sm" onclick="refreshSection('market')">🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body flush">
                             <div class="table-wrapper">
-                                <table class="data-table" id="competitorTable">
+                                <table class="data-table" id="topBooksTable">
                                     <thead>
                                         <tr>
-                                            <th>Title</th>
+                                            <th>Book Title</th>
+                                            <th>Type</th>
                                             <th>Author</th>
-                                            <th>Publisher</th>
-                                            <th>Marketplace</th>
-                                            <th>Price</th>
-                                            <th>Rating</th>
-                                            <th>Reviews</th>
-                                            <th>Format</th>
-                                            <th>BSR</th>
+                                            <th>Amazon Price</th>
+                                            <th>Rating (Reviews)</th>
+                                            <th>Rank on Amazon</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="competitorTableBody">
-                                        <!-- Populated by JS -->
+                                    <tbody id="topBooksBody">
+                                        <tr>
+                                            <td colspan="6" class="empty-state" style="padding:40px;">Select an exam to
+                                                view books.</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -167,87 +118,244 @@
                     </div>
                 </div>
 
-                <!-- Section: Review Intelligence -->
-                <div class="section" id="section-reviews" style="display:none;">
-                    <div class="section-header">
-                        <h2 class="section-title">💬 Review Intelligence</h2>
-                        <div class="section-actions">
-                            <button class="btn btn-sm" onclick="refreshSection('reviews')">🔄 Refresh</button>
-                            <button class="btn btn-sm" onclick="downloadCSV('reviews')">📥 CSV</button>
+                <!-- ── Tab: Pricing & Competitors ──────────────────── -->
+                <div class="tab-panel" id="panel-pricing" style="display:none;">
+                    <div class="kpi-row">
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <span class="kpi-label">🛒 Amazon Avg. Price</span>
+                            </div>
+                            <div class="kpi-value" id="kpiAmazonPrice">—</div>
+                            <div class="kpi-desc">Average across top 20 category bestsellers.</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <span class="kpi-label">🛍️ Flipkart Avg. Price</span>
+                            </div>
+                            <div class="kpi-value" id="kpiFlipkartPrice">—</div>
+                            <div class="kpi-desc">Average across top 20 category bestsellers.</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <span class="kpi-label">📊 Price Gap (Best-Seller vs Avg)</span>
+                            </div>
+                            <div class="kpi-value" id="kpiPriceGap">—</div>
+                            <div class="kpi-desc">Best-seller is priced lower than average.</div>
                         </div>
                     </div>
-                    <div id="reviewsContent">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">💬</div>
-                            <h3>No Review Analysis</h3>
-                            <p>Select an exam and scrape data to see AI-powered review insights.</p>
+
+                    <!-- Price Trend Placeholder -->
+                    <div class="price-trend-card">
+                        <h3>Price Trend (Last 30 Days)</h3>
+                        <div class="chart-placeholder" id="priceTrendChart">
+                            Price trend chart will appear after data collection.
+                        </div>
+                    </div>
+
+                    <!-- Competitor Pricing Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Competitor Pricing Comparison</h3>
+                            <div class="card-actions">
+                                <button class="btn btn-sm" onclick="downloadCSV('products')">📥 CSV</button>
+                                <button class="btn btn-sm" onclick="refreshSection('pricing')">🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body flush">
+                            <div class="table-wrapper">
+                                <table class="data-table" id="pricingTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Competitor Name</th>
+                                            <th>Amazon Price</th>
+                                            <th>Flipkart Price</th>
+                                            <th>Discount %</th>
+                                            <th>Author</th>
+                                            <th>Rank on Amazon</th>
+                                            <th>Rating</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pricingBody">
+                                        <tr>
+                                            <td colspan="7" class="empty-state" style="padding:40px;">Select an exam to
+                                                view pricing data.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Section: Book Features -->
-                <div class="section" id="section-features" style="display:none;">
-                    <div class="section-header">
-                        <h2 class="section-title">🔍 Book Features</h2>
-                        <div class="section-actions">
-                            <button class="btn btn-sm" onclick="refreshSection('features')">🔄 Refresh</button>
-                            <button class="btn btn-sm" onclick="downloadCSV('features')">📥 CSV</button>
+                <!-- ── Tab: Content Analysis ───────────────────────── -->
+                <div class="tab-panel" id="panel-content" style="display:none;">
+                    <!-- Format Distribution -->
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="card-header">
+                            <h3>Specification Summary (Format Distribution)</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="format-chart" id="formatChart">
+                                <div class="format-bar-group">
+                                    <span class="format-pct" id="pctPYQ">—</span>
+                                    <div class="format-bar pyq" id="barPYQ" style="height:0;"></div>
+                                    <span class="format-label">PYQ</span>
+                                </div>
+                                <div class="format-bar-group">
+                                    <span class="format-pct" id="pctTheory">—</span>
+                                    <div class="format-bar theory" id="barTheory" style="height:0;"></div>
+                                    <span class="format-label">Theory</span>
+                                </div>
+                                <div class="format-bar-group">
+                                    <span class="format-pct" id="pctMixed">—</span>
+                                    <div class="format-bar mixed" id="barMixed" style="height:0;"></div>
+                                    <span class="format-label">Mixed</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div id="featuresContent">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">🔍</div>
-                            <h3>No Feature Analysis</h3>
-                            <p>Run AI analysis to classify book types and extract feature data.</p>
+
+                    <!-- Content Breakdown -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Content Breakdown</h3>
+                            <div class="card-actions">
+                                <button class="btn btn-sm" onclick="downloadCSV('features')">📥 CSV</button>
+                                <button class="btn btn-sm" onclick="refreshSection('content')">🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body flush">
+                            <div class="table-wrapper">
+                                <table class="data-table" id="contentTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Book Title</th>
+                                            <th>Format Type</th>
+                                            <th>Pages</th>
+                                            <th>Year</th>
+                                            <th>Solutions</th>
+                                            <th>Language</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="contentBody">
+                                        <tr>
+                                            <td colspan="6" class="empty-state" style="padding:40px;">Run AI analysis to
+                                                see content breakdown.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Section: Product Gaps -->
-                <div class="section" id="section-gaps" style="display:none;">
-                    <div class="section-header">
-                        <h2 class="section-title">🎯 Product Gaps & Recommendations</h2>
-                        <div class="section-actions">
-                            <button class="btn btn-sm" onclick="refreshSection('gaps')">🔄 Refresh</button>
-                            <button class="btn btn-sm" onclick="downloadCSV('gaps')">📥 CSV</button>
+                <!-- ── Tab: Sentiment & Gaps ───────────────────────── -->
+                <div class="tab-panel" id="panel-sentiment" style="display:none;">
+                    <div class="section-bar">
+                        <h2 class="section-title" style="font-size:16px;">✨ Top 20 Sentiment & Gap Analysis</h2>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn btn-sm" onclick="downloadCSV('sentiment')">📥 Download CSV</button>
+                            <button class="btn btn-sm" onclick="refreshSection('sentiment')">🔄 Refresh</button>
                         </div>
                     </div>
-                    <div id="gapsContent">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">🎯</div>
-                            <h3>No Gap Analysis</h3>
-                            <p>Run full analysis to identify market gaps and launch recommendations.</p>
+
+                    <!-- Sentiment KPIs -->
+                    <div class="sentiment-row" id="sentimentKpis">
+                        <div class="sentiment-card">
+                            <div class="sentiment-card-header">
+                                <span class="sentiment-label">Positive Sentiment</span>
+                                <span class="sentiment-icon">😊</span>
+                            </div>
+                            <div class="sentiment-value" id="sentPositive" style="color: var(--green);">—</div>
+                            <div class="sentiment-bar" style="background: var(--green);"></div>
+                            <div class="sentiment-desc">Aggregated from Top 20 Best-Selling Books on Amazon & Flipkart.
+                            </div>
+                        </div>
+                        <div class="sentiment-card">
+                            <div class="sentiment-card-header">
+                                <span class="sentiment-label">Neutral Sentiment</span>
+                                <span class="sentiment-icon">😐</span>
+                            </div>
+                            <div class="sentiment-value" id="sentNeutral" style="color: var(--yellow);">—</div>
+                            <div class="sentiment-bar" style="background: var(--yellow);"></div>
+                            <div class="sentiment-desc">Mixed feedback on formatting and delivery across top products.
+                            </div>
+                        </div>
+                        <div class="sentiment-card">
+                            <div class="sentiment-card-header">
+                                <span class="sentiment-label">Negative Sentiment</span>
+                                <span class="sentiment-icon">😠</span>
+                            </div>
+                            <div class="sentiment-value" id="sentNegative" style="color: var(--red);">—</div>
+                            <div class="sentiment-bar" style="background: var(--red);"></div>
+                            <div class="sentiment-desc">Critical issues impacting purchase decisions in Top 20 list.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reviews & Complaints by Marketplace -->
+                    <div class="review-complaints" id="reviewComplaints">
+                        <div class="complaint-card" id="amazonComplaints">
+                            <h4>⚠️ Amazon Reviews & Complaints</h4>
+                            <div class="stars-row" id="amazonStars">—</div>
+                            <ul id="amazonComplaintsList"></ul>
+                        </div>
+                        <div class="complaint-card" id="flipkartComplaints">
+                            <h4>⚠️ Flipkart Reviews & Complaints</h4>
+                            <div class="stars-row" id="flipkartStars">—</div>
+                            <ul id="flipkartComplaintsList"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Consolidated Gap Analysis -->
+                    <div class="gap-section" id="gapAnalysis">
+                        <h3>💡 Consolidated Gap Analysis</h3>
+                        <ul id="gapList">
+                            <li>Run AI analysis to identify market gaps and opportunities.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Review Highlights -->
+                    <div class="section-bar" style="margin-top: 24px;">
+                        <h2 class="section-title" style="font-size:16px;">Review Highlights</h2>
+                        <span class="cat-badge cat-other">Filtered by: Critical</span>
+                    </div>
+                    <div id="reviewHighlights">
+                        <div class="empty-state" style="padding: 32px;">
+                            <p style="color: var(--text-light);">Run analysis to see critical review highlights.</p>
                         </div>
                     </div>
                 </div>
-
-                <!-- No Exam Selected -->
-                <div class="section" id="section-no-exam" style="display:none;">
-                    <div class="empty-state" style="padding: 80px 24px;">
-                        <div class="empty-state-icon">👈</div>
-                        <h3>Select an Exam</h3>
-                        <p>Choose an exam from the sidebar dropdown or type one in the search field to begin analysis.
-                        </p>
-                    </div>
-                </div>
-
             </div>
+
+            <!-- No Exam Selected -->
+            <div id="noExamState" style="display:none;">
+                <div class="empty-state" style="padding: 60px;">
+                    <div class="empty-state-icon">📊</div>
+                    <h3>Select an Exam</h3>
+                    <p>Choose an exam from the dropdown above to start analysis.</p>
+                </div>
+            </div>
+
         </div>
 
-        <!-- ─── Activity Log Panel ───────────────────────────────────── -->
+        <!-- ─── Activity Log Panel ────────────────────────────────── -->
         <aside class="activity-panel" id="activityPanel">
-            <div class="activity-panel-header">
-                <h3><span class="activity-dot" id="activityDot"></span> Activity Log</h3>
-                <button class="btn btn-sm" onclick="clearLog()">Clear</button>
+            <div class="activity-header">
+                <h3><span class="activity-dot" id="activityDot"></span> Live Activity Log</h3>
+                <button class="btn btn-sm" onclick="clearLog()"
+                    style="border:none; color: var(--text-light); font-weight:500;">Clear</button>
             </div>
             <div class="activity-log" id="activityLog">
-                <div class="log-entry level-info">
-                    <span class="log-time">--:--:--</span>
-                    <span class="log-message">Dashboard ready. Select an exam to begin.</span>
+                <div class="log-entry">
+                    <div class="log-icon info">ℹ</div>
+                    <div>
+                        <div class="log-text">Dashboard ready. Select an exam to begin analysis.</div>
+                        <div class="log-time">Just now</div>
+                    </div>
                 </div>
             </div>
         </aside>
-
     </div>
 
     <script src="/static/js/app.js"></script>

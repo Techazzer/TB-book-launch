@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Upcoming Exams — Product Launch Dashboard</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body>
+    <div style="max-width: 1100px; margin: 0 auto; padding: 32px;">
+        <div class="page-header">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <a href="/dashboard" class="btn btn-sm">← Back to Dashboard</a>
+            </div>
+            <h2>📅 All Upcoming Exams</h2>
+            <p>Complete list of exams expected in the next 6 months</p>
+            <div class="page-header-actions">
+                <button class="btn btn-sm" onclick="refreshAllExams()">🔄 Refresh</button>
+                <button class="btn btn-sm" onclick="downloadAllExamsCSV()">📥 Download CSV</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body no-padding">
+                <div class="table-wrapper" style="max-height: none;">
+                    <table class="data-table" id="allExamsTable">
+                        <thead>
+                            <tr>
+                                <th>Exam Name</th>
+                                <th>Notification Date</th>
+                                <th>Application Start</th>
+                                <th>Application End</th>
+                                <th>Expected Exam Date</th>
+                                <th>Cycle</th>
+                                <th>Est. Applicants</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allExamsTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+
+        async function loadAllExams() {
+            try {
+                const res = await fetch(`${API}/api/schedule/all`);
+                const data = await res.json();
+                renderAllExamsTable(data);
+            } catch (err) {
+                document.getElementById('allExamsTableBody').innerHTML =
+                    '<tr><td colspan="8" style="text-align:center; padding:40px; color: #9096A6;">No exam schedule data available yet. Add data or run a scrape.</td></tr>';
+            }
+        }
+
+        function renderAllExamsTable(exams) {
+            const tbody = document.getElementById('allExamsTableBody');
+            if (!exams || exams.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color: #9096A6;">No exam schedule data available.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = exams.map(e => `
+                <tr>
+                    <td><strong>${e.exam_name || ''}</strong></td>
+                    <td>${e.notification_date || '—'}</td>
+                    <td>${e.application_start || '—'}</td>
+                    <td>${e.application_end || '—'}</td>
+                    <td><span class="badge badge-accent">${e.expected_exam_date || 'TBD'}</span></td>
+                    <td>${e.exam_cycle || '—'}</td>
+                    <td>${e.estimated_applicants || '—'}</td>
+                    <td>${e.source_name ? `<a href="${e.source_url || '#'}" target="_blank">${e.source_name}</a>` : '—'}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function refreshAllExams() {
+            loadAllExams();
+        }
+
+        async function downloadAllExamsCSV() {
+            window.location.href = `${API}/api/schedule/csv`;
+        }
+
+        loadAllExams();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Product Launch</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- ─── Sidebar ──────────────────────────────────────────────── -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <div class="sidebar-brand-icon">📚</div>
+                    <div>
+                        <h1>Product Launch</h1>
+                        <span>Testbook Intelligence</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Dashboard</div>
+                <a class="nav-item active" data-section="upcoming" onclick="showSection('upcoming')">
+                    <span class="nav-item-icon">📅</span> Upcoming Exams
+                </a>
+                <a class="nav-item" data-section="overview" onclick="showSection('overview')">
+                    <span class="nav-item-icon">📊</span> Exam Overview
+                </a>
+                <a class="nav-item" data-section="competitors" onclick="showSection('competitors')">
+                    <span class="nav-item-icon">📚</span> Competitor Books
+                </a>
+                <a class="nav-item" data-section="reviews" onclick="showSection('reviews')">
+                    <span class="nav-item-icon">💬</span> Review Intelligence
+                </a>
+                <a class="nav-item" data-section="features" onclick="showSection('features')">
+                    <span class="nav-item-icon">🔍</span> Book Features
+                </a>
+                <a class="nav-item" data-section="gaps" onclick="showSection('gaps')">
+                    <span class="nav-item-icon">🎯</span> Product Gaps
+                </a>
+            </nav>
+
+            <!-- Exam Selector -->
+            <div class="exam-selector">
+                <label for="examSelect">Select Exam</label>
+                <div class="exam-select-wrapper">
+                    <select class="exam-select" id="examSelect" onchange="onExamSelected()">
+                        <option value="">— Choose an exam —</option>
+                    </select>
+                </div>
+                <input type="text" class="exam-manual-input" id="examManualInput" placeholder="or type exam name..."
+                    onkeydown="if(event.key==='Enter') onManualExamEnter()">
+            </div>
+        </aside>
+
+        <!-- ─── Main Content ─────────────────────────────────────────── -->
+        <div class="main-area with-log" id="mainArea">
+            <div class="content" id="content">
+
+                <!-- Section: Upcoming Exams -->
+                <div class="section" id="section-upcoming">
+                    <div class="section-header">
+                        <h2 class="section-title">📅 Upcoming Exams</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-sm" onclick="refreshSection('upcoming')"
+                                data-tooltip="Refresh exam schedule">
+                                🔄 Refresh
+                            </button>
+                            <button class="btn btn-sm" onclick="downloadCSV('schedule')" data-tooltip="Export as CSV">
+                                📥 CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div id="upcomingExamsContent">
+                        <div class="exam-cards-grid" id="upcomingExamsGrid">
+                            <!-- Populated by JS -->
+                        </div>
+                        <a class="show-all-link" href="/all-exams">Show All Exams →</a>
+                    </div>
+                </div>
+
+                <!-- Section: Exam Overview (shown after exam selection) -->
+                <div class="section" id="section-overview" style="display:none;">
+                    <div class="section-header">
+                        <h2 class="section-title" id="overviewTitle">📊 Exam Overview</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-sm btn-primary" onclick="refreshSection('scrape')" id="scrapeBtn">
+                                🔄 Scrape Data
+                            </button>
+                            <button class="btn btn-sm" onclick="downloadCSV('products')"
+                                data-tooltip="Export products CSV">
+                                📥 CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div class="kpi-grid" id="kpiGrid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Total Books</div>
+                            <div class="kpi-value accent" id="kpiTotalBooks">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Avg Price</div>
+                            <div class="kpi-value" id="kpiAvgPrice">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Avg Rating</div>
+                            <div class="kpi-value success" id="kpiAvgRating">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Bestsellers</div>
+                            <div class="kpi-value warning" id="kpiBestsellers">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Amazon</div>
+                            <div class="kpi-value" id="kpiAmazon">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Flipkart</div>
+                            <div class="kpi-value" id="kpiFlipkart">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Total Reviews</div>
+                            <div class="kpi-value" id="kpiReviews">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Competitor Books -->
+                <div class="section" id="section-competitors" style="display:none;">
+                    <div class="section-header">
+                        <h2 class="section-title">📚 Competitor Books</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-sm" onclick="refreshSection('competitors')">🔄 Refresh</button>
+                            <button class="btn btn-sm" onclick="downloadCSV('products')">📥 CSV</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body no-padding">
+                            <div class="table-wrapper">
+                                <table class="data-table" id="competitorTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Author</th>
+                                            <th>Publisher</th>
+                                            <th>Marketplace</th>
+                                            <th>Price</th>
+                                            <th>Rating</th>
+                                            <th>Reviews</th>
+                                            <th>Format</th>
+                                            <th>BSR</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="competitorTableBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Review Intelligence -->
+                <div class="section" id="section-reviews" style="display:none;">
+                    <div class="section-header">
+                        <h2 class="section-title">💬 Review Intelligence</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-sm" onclick="refreshSection('reviews')">🔄 Refresh</button>
+                            <button class="btn btn-sm" onclick="downloadCSV('reviews')">📥 CSV</button>
+                        </div>
+                    </div>
+                    <div id="reviewsContent">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">💬</div>
+                            <h3>No Review Analysis</h3>
+                            <p>Select an exam and scrape data to see AI-powered review insights.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Book Features -->
+                <div class="section" id="section-features" style="display:none;">
+                    <div class="section-header">
+                        <h2 class="section-title">🔍 Book Features</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-sm" onclick="refreshSection('features')">🔄 Refresh</button>
+                            <button class="btn btn-sm" onclick="downloadCSV('features')">📥 CSV</button>
+                        </div>
+                    </div>
+                    <div id="featuresContent">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <h3>No Feature Analysis</h3>
+                            <p>Run AI analysis to classify book types and extract feature data.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Product Gaps -->
+                <div class="section" id="section-gaps" style="display:none;">
+                    <div class="section-header">
+                        <h2 class="section-title">🎯 Product Gaps & Recommendations</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-sm" onclick="refreshSection('gaps')">🔄 Refresh</button>
+                            <button class="btn btn-sm" onclick="downloadCSV('gaps')">📥 CSV</button>
+                        </div>
+                    </div>
+                    <div id="gapsContent">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🎯</div>
+                            <h3>No Gap Analysis</h3>
+                            <p>Run full analysis to identify market gaps and launch recommendations.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No Exam Selected -->
+                <div class="section" id="section-no-exam" style="display:none;">
+                    <div class="empty-state" style="padding: 80px 24px;">
+                        <div class="empty-state-icon">👈</div>
+                        <h3>Select an Exam</h3>
+                        <p>Choose an exam from the sidebar dropdown or type one in the search field to begin analysis.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ─── Activity Log Panel ───────────────────────────────────── -->
+        <aside class="activity-panel" id="activityPanel">
+            <div class="activity-panel-header">
+                <h3><span class="activity-dot" id="activityDot"></span> Activity Log</h3>
+                <button class="btn btn-sm" onclick="clearLog()">Clear</button>
+            </div>
+            <div class="activity-log" id="activityLog">
+                <div class="log-entry level-info">
+                    <span class="log-time">--:--:--</span>
+                    <span class="log-message">Dashboard ready. Select an exam to begin.</span>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

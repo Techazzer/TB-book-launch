@@ -1,0 +1,59 @@
+"""Central configuration for the Product Launch Dashboard."""
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+BASE_DIR = Path(__file__).parent
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+DB_PATH = os.getenv("DB_PATH", str(DATA_DIR / "dashboard.db"))
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+# ── API Keys ─────────────────────────────────────────────────────────────────
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+AI_MODEL = "claude-sonnet-4-20250514"
+
+# ── Scraping ─────────────────────────────────────────────────────────────────
+MAX_PRODUCTS_PER_MARKETPLACE = int(os.getenv("MAX_PRODUCTS_PER_MARKETPLACE", "30"))
+MAX_REVIEWS_PER_PRODUCT = int(os.getenv("MAX_REVIEWS_PER_PRODUCT", "100"))
+SCRAPE_DELAY_MIN = float(os.getenv("SCRAPE_DELAY_MIN", "2"))
+SCRAPE_DELAY_MAX = float(os.getenv("SCRAPE_DELAY_MAX", "5"))
+
+# ── Supported Exams ──────────────────────────────────────────────────────────
+EXAM_LIST = [
+    # SSC Exams
+    "SSC CGL", "SSC CHSL", "SSC MTS", "SSC GD Constable",
+    "SSC CPO", "SSC Stenographer", "SSC JE",
+    # Railway Exams
+    "RRB NTPC", "RRB Group D", "RRB ALP", "RRB JE",
+    "RRB Ministerial", "RPF Constable", "RPF SI",
+    # Banking Exams
+    "IBPS PO", "IBPS Clerk", "IBPS SO", "IBPS RRB PO",
+    "IBPS RRB Clerk", "SBI PO", "SBI Clerk", "RBI Grade B",
+    "RBI Assistant", "NABARD Grade A", "SEBI Grade A",
+    # UPSC & State PSC
+    "UPSC Prelims", "UPSC CAPF", "UPSC CDS", "UPSC NDA",
+    "UPSC EPFO", "BPSC", "UPPSC", "MPPSC", "RPSC",
+    # Teaching Exams
+    "CTET", "KVS PRT", "KVS TGT", "KVS PGT",
+    "NVS TGT", "NVS PGT", "DSSSB TGT", "DSSSB PRT",
+    "SUPER TET", "UPTET", "MPTET", "REET",
+    # Defense Exams
+    "AFCAT", "CDS", "NDA", "Indian Navy SSR",
+    "Indian Navy AA", "Indian Air Force Group X Y",
+    # Insurance
+    "LIC AAO", "LIC ADO", "NIACL AO",
+    # Other
+    "GATE", "UGC NET", "CSIR NET",
+    "CUET", "CLAT", "NEET", "JEE Main",
+]
+
+# ── Search Query Suffixes ────────────────────────────────────────────────────
+SEARCH_SUFFIXES = [
+    "book", "preparation book", "guide",
+    "previous year papers", "practice set",
+    "solved papers", "study material",
+]

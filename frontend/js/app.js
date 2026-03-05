@@ -313,11 +313,44 @@ function parseApplicants(str) {
 // ── Section Refresh ─────────────────────────────────────────────────────────
 async function refreshSection(section) {
     addLogEntry('info', `Refreshing ${section}...`);
-    if (currentExam) {
-        await loadExamData(currentExam);
-        addLogEntry('success', `${section} data refreshed.`);
-    } else {
-        addLogEntry('warning', 'No exam selected.');
+
+    switch (section) {
+        case 'upcoming':
+            try {
+                const res = await fetch(`${API}/api/schedule/refresh`, { method: 'POST' });
+                if (res.ok) {
+                    await loadUpcomingExams();
+                    addLogEntry('success', 'Exam schedule refreshed from sources.');
+                }
+            } catch (err) {
+                addLogEntry('error', 'Failed to refresh schedule.');
+            }
+            break;
+        case 'market':
+        case 'pricing':
+        case 'content':
+            if (currentExam) {
+                await loadTopBooks(currentExam);
+                addLogEntry('success', `${section} data refreshed.`);
+            } else {
+                addLogEntry('warning', 'No exam selected.');
+            }
+            break;
+        case 'sentiment':
+            if (currentExam) {
+                await loadExamData(currentExam);
+                addLogEntry('success', 'Sentiment data refreshed.');
+            } else {
+                addLogEntry('warning', 'No exam selected.');
+            }
+            break;
+        default:
+            if (currentExam) {
+                await loadExamData(currentExam);
+                addLogEntry('success', `${section} data refreshed.`);
+            } else {
+                addLogEntry('warning', 'No exam selected.');
+            }
     }
 }
 

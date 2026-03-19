@@ -11,24 +11,20 @@
       "destination": "backend/main.py"
     },
     {
-      "source": "/",
-      "destination": "frontend/index.html"
-    },
-    {
       "source": "/dashboard",
-      "destination": "frontend/dashboard.html"
+      "destination": "dashboard.html"
     },
     {
       "source": "/all-exams",
-      "destination": "frontend/all-exams.html"
+      "destination": "all-exams.html"
     },
     {
       "source": "/process",
-      "destination": "frontend/process.html"
+      "destination": "process.html"
     },
     {
       "source": "/static/(.*)",
-      "destination": "frontend/$1"
+      "destination": "/$1"
     }
   ],
   "env": {

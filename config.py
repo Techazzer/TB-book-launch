@@ -23,7 +23,7 @@ else:
     # On Vercel or with Supabase, we don't need the local 'data' folder
     DB_PATH = "/tmp/dashboard.db" 
 
-FRONTEND_DIR = BASE_DIR
+FRONTEND_DIR = BASE_DIR / "public"
 
 # ── API Keys ─────────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")

@@ -13,8 +13,11 @@ from config import FRONTEND_DIR
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
-    init_db()
+    """Initialize database on startup (safe fail mode)."""
+    try:
+        init_db()
+    except Exception as e:
+        print(f"Warning: Startup init_db failed, likely missing DATABASE_URL. {e}")
     yield
 
 

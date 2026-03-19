@@ -2,10 +2,10 @@
 import asyncio
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from backend import crud
-from backend.models import ExamScheduleBase, ExamScheduleOut, StatusResponse
-from backend.scrapers.exam_schedule import scrape_exam_schedules, get_seed_exam_data
-from backend.ws_manager import log_manager
+from import crud
+from models import ExamScheduleBase, ExamScheduleOut, StatusResponse
+from scrapers.exam_schedule import scrape_exam_schedules, get_seed_exam_data
+from ws_manager import log_manager
 import csv
 import io
 

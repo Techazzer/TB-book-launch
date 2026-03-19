@@ -9,7 +9,7 @@ import asyncio
 import re
 from datetime import datetime
 from bs4 import BeautifulSoup
-from backend.ws_manager import log_manager
+from ws_manager import log_manager
 from config import SCRAPING_DELAY, SCRAPING_MAX_PAGES
 
 

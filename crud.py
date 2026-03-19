@@ -1,7 +1,7 @@
 """CRUD operations for the database supporting both SQLite and PostgreSQL."""
 import json
 from typing import Optional
-from backend.database import get_connection, get_cursor, PLACEHOLDER, get_last_row_id
+from database import get_connection, get_cursor, PLACEHOLDER, get_last_row_id
 
 # ── Helper ───────────────────────────────────────────────────────────────────
 def row_to_dict(row):
@@ -104,7 +104,7 @@ def get_upcoming_exams(limit: Optional[int] = None) -> list[dict]:
     conn = get_connection()
     cur = get_cursor(conn)
     # date('now') is SQLite. In Postgres, it's CURRENT_DATE.
-    from backend.database import DATABASE_URL
+    from database import DATABASE_URL
     date_now = "CURRENT_DATE" if DATABASE_URL else "date('now')"
     
     query = f"""
@@ -152,7 +152,7 @@ def insert_product(exam_id: int, data: dict) -> int:
                 {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER})
     """
     # SQLite uses cur.lastrowid; Postgres we append RETURNING id
-    from backend.database import DATABASE_URL
+    from database import DATABASE_URL
     if DATABASE_URL: query += " RETURNING id"
     
     params = (
@@ -212,7 +212,7 @@ def insert_review(product_id: int, data: dict) -> int:
             VALUES ({PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, 
                     {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER})"""
     
-    from backend.database import DATABASE_URL
+    from database import DATABASE_URL
     if DATABASE_URL: query += " RETURNING id"
     
     params = (

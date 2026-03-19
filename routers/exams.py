@@ -1,10 +1,10 @@
 """Exam-related API endpoints."""
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from backend import crud
-from backend.models import ExamBase, ExamOut, ExamOverview, StatusResponse
-from backend.scrapers.pipeline import run_scraping_pipeline
-from backend.scrapers.ai_analyzer import run_sentiment_analysis
+from import crud
+from models import ExamBase, ExamOut, ExamOverview, StatusResponse
+from scrapers.pipeline import run_scraping_pipeline
+from scrapers.ai_analyzer import run_sentiment_analysis
 from config import EXAM_LIST
 import csv
 import io

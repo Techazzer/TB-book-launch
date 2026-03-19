@@ -5,9 +5,9 @@ Pipeline Orchestrator — Scrape + inline review save.
 """
 import asyncio
 from datetime import datetime
-from backend.scrapers.amazon_scraper import scrape_amazon_books
-from backend import crud
-from backend.ws_manager import log_manager
+from scrapers.amazon_scraper import scrape_amazon_books
+from import crud
+from ws_manager import log_manager
 
 MAX_BOOKS = 100
 

@@ -12,7 +12,7 @@ import re
 import random
 from datetime import datetime
 from bs4 import BeautifulSoup
-from backend.ws_manager import log_manager
+from ws_manager import log_manager
 from config import SCRAPING_DELAY
 
 MAX_BOOKS = 100

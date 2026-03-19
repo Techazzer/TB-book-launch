@@ -16,8 +16,8 @@ import logging
 from datetime import datetime
 from bs4 import BeautifulSoup
 from config import EXAM_LIST
-from backend.crud import upsert_exam_schedule, get_all_exam_schedules
-from backend.ws_manager import log_manager
+from crud import upsert_exam_schedule, get_all_exam_schedules
+from ws_manager import log_manager
 
 logger = logging.getLogger(__name__)
 

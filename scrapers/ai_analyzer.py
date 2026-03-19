@@ -20,8 +20,8 @@ except Exception:
                     # Return a minimal structure
                     return type("Response", (), {"content": [type("Content", (), {"text": "{}"})]})
             return Dummy()
-from backend import crud
-from backend.ws_manager import log_manager
+from import crud
+from ws_manager import log_manager
 from config import ANTHROPIC_API_KEY, AI_MODEL
 
 client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None

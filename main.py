@@ -5,9 +5,9 @@ from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from backend.database import init_db
-from backend.routers import exams, schedule
-from backend.ws_manager import log_manager
+from database import init_db
+from routers import exams, schedule
+from ws_manager import log_manager
 from config import FRONTEND_DIR
 
 

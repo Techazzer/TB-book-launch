@@ -11,11 +11,18 @@ load_dotenv()
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
-DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
-# ── Database ─────────────────────────────────────────────────────────────────
 DATABASE_URL = os.getenv("DATABASE_URL", "")
-DB_PATH = os.getenv("DB_PATH", str(DATA_DIR / "dashboard.db"))
+IS_VERCEL = os.getenv("VERCEL", "") == "1"
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+if not DATABASE_URL and not IS_VERCEL:
+    DATA_DIR = BASE_DIR / "data"
+    DATA_DIR.mkdir(exist_ok=True)
+    DB_PATH = os.getenv("DB_PATH", str(DATA_DIR / "dashboard.db"))
+else:
+    # On Vercel or with Supabase, we don't need the local 'data' folder
+    DB_PATH = "/tmp/dashboard.db" 
+
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 # ── API Keys ─────────────────────────────────────────────────────────────────

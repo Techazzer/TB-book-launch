@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process & Logic — Book Launch Intelligence</title>
+    <link rel="stylesheet" href="/static/css/styles.css?v=20260319">
+    <style>
+        .process-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 24px;
+        }
+
+        .process-section {
+            background: #fff;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .process-section h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-strong);
+        }
+
+        .process-section h3 {
+            font-size: 16px;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        .process-section p {
+            line-height: 1.6;
+            color: var(--text-mid);
+            margin-bottom: 16px;
+        }
+
+        .process-section ul, .process-section ol {
+            padding-left: 20px;
+            color: var(--text-mid);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .process-section li {
+            margin-bottom: 8px;
+        }
+
+        .logic-card {
+            background: var(--bg-hover);
+            border-left: 4px solid var(--blue);
+            padding: 16px;
+            border-radius: 4px 8px 8px 4px;
+            margin-bottom: 16px;
+        }
+
+        .code-block {
+            background: #f4f6f8;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--text-main);
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ─── Top Navigation ─────────────────────────────────────────── -->
+    <header class="topbar">
+        <a href="/" class="topbar-brand">
+            <span class="topbar-brand-icon">📘</span>
+            Book Launch
+        </a>
+        <nav class="topbar-nav">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/all-exams">Exams</a>
+            <a href="/process" class="active">Process & Logic</a>
+        </nav>
+        <div class="topbar-right">
+            <span class="topbar-bell">🔔</span>
+            <div class="topbar-avatar">TB</div>
+        </div>
+    </header>
+
+    <!-- ─── Main Content ───────────────────────────────────────────── -->
+    <div class="process-container">
+
+        <div style="margin-bottom: 32px;">
+            <h1 style="font-size: 28px; margin-bottom: 8px;">Process & Logic Documentation</h1>
+            <p style="color: var(--text-light);">Transparency guide on how the Book Launch Intelligence Dashboard
+                fetches, calculates, and analyzes market intelligence data.</p>
+        </div>
+
+        <div class="process-section">
+            <h2>📊 Data Definitions & Metrics</h2>
+
+            <h3>Total Addressable Market (TAM)</h3>
+            <div class="logic-card">
+                <b>Logic:</b> Extracted from "Estimated Applicants" in the Exam Schedule data (SarkariResult/Testbook sources).
+            </div>
+            <p>The dashboard parses numerical representations of volume (e.g., "35 Lakhs" or "2 Cr") into standardized numbers to determine the potential scale of the book launch.</p>
+
+            <h3>Best Seller Rank (BSR)</h3>
+            <div class="logic-card">
+                <b>Logic:</b> Multi-strategy extraction targeting Amazon-specific BSR fields.
+            </div>
+            <p>We use a 3-tier fallback strategy: 
+                <br>1. Scrape the direct BSR label in the product details.
+                <br>2. Scan the "Bestsellers" section in the product description. 
+                <br>3. Search for regex patterns (e.g. <code>#123 in Books</code>) across the full page text.
+            </p>
+
+            <h3>Price Gap (Best-Seller vs Avg)</h3>
+            <div class="logic-card">
+                <b>Logic:</b> <code>Best Rated Book Price - Average Category Price</code>.
+            </div>
+            <p>This metric identifies if the current market leader is pricing at a premium or discount relative to the broader competitive set. Green indicates a competitive advantage (lower price), while red suggests a premium strategy.</p>
+        </div>
+
+        <div class="process-section">
+            <h2>🕷️ Universal Scraping Strategy</h2>
+
+            <p>The dashboard now focuses exclusively on <strong>Amazon India</strong> to ensure the highest data consistency and reliability for decision making.</p>
+
+            <ol>
+                <li><strong>Automated Cleanup:</strong> When a new scrape is triggered for an exam, the system automatically deletes all previous products and reviews for that exam to prevent duplicate data points.</li>
+                <li><strong>Scaling Capabilities:</strong> Users can select between 10, 20, 50, 100, or 200 products via the dashboard control bar.</li>
+                <li><strong>Inline Review Extraction:</strong> To bypass bot-detection on separate review pages, the scraper now extracts reviews <strong>inline</strong> directly from the product detail page. 
+                    <ul>
+                        <li>We collect up to <strong>5 Positive (≥4★)</strong> and <strong>5 Negative (≤2★)</strong> reviews per book.</li>
+                        <li>This ensures every book in the Competitor Analysis has a representative sample of reader sentiment.</li>
+                    </ul>
+                </li>
+                <li><strong>Attribute Extraction:</strong> Uses advanced parsing for Book Format (PYQ/Theory), Language, Publisher, and Author directly from Amazon's specification bullets.</li>
+            </ol>
+        </div>
+
+        <div class="process-section">
+            <h2>🧠 AI Intelligence (Claude 3.5 Sonnet)</h2>
+
+            <p>Sentiment and gap analysis is performed <strong>on-demand</strong> via the "Sentiment Check" button to optimize API costs and focus only on validated data sets.</p>
+
+            <h3>Holistic Sentiment Analysis</h3>
+            <div class="logic-card">
+                <b>Logic:</b> The system sends all collected inline reviews for the top <i>N</i> products to Claude.
+            </div>
+            <p>The AI performs semantic analysis to determine positive/neutral/negative percentages and identifies the "Top 5 Reader Praises" and "Top 5 Reader Complaints" across the entire category.</p>
+
+            <h3>Consolidated Gap Analysis</h3>
+            <p>The AI looks for recurring patterns in the "Negative" reviews across all competitors to identify market gaps:</p>
+            <ul>
+                <li><strong>Content Gaps:</strong> Missing solutions, outdated syllabus, or thin explanations.</li>
+                <li><strong>Quality Gaps:</strong> Poor paper quality, binding issues, or printing errors.</li>
+                <li><strong>Feature Gaps:</strong> Lack of QR code access, missing mock tests, or insufficient practice questions.</li>
+            </ul>
+
+            <h3>Positioning Recommendation</h3>
+            <p>Based on the detected gaps and price distribution, the AI generates a specific <strong>Target Positioning</strong> recommendation, advising whether to launch as a "Premium Comprehensive Guide" or a "Budget Practice-Heavy PYQ" book.</p>
+        </div>
+
+    </div>
+
+    <script src="/static/js/app.js?v=20260319"></script>
+</body>
+
+</html>

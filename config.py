@@ -1,7 +1,11 @@
 """Central configuration for the Product Launch Dashboard."""
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except Exception:
+    def load_dotenv():
+        pass
 
 load_dotenv()
 

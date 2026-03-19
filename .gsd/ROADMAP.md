@@ -1,19 +1,19 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 4 — Book Analysis & Competitor Intelligence
+> **Current Phase**: Phase 6 — Polish & Integration
 > **Milestone**: v1.0 — MVP Product Launch Dashboard
 
 ## Must-Haves (from SPEC)
-- [ ] FastAPI backend with SQLite database
-- [ ] Upcoming exams section (next 6 months, default 5, "Show All")
-- [ ] Exam selector (dropdown + manual input)
-- [ ] Amazon & Flipkart scraping pipeline
-- [ ] Competitor book analysis (pricing, ratings, marketplace presence)
-- [ ] AI sentiment analysis & feature gap detection
-- [ ] Live activity log panel (right side)
-- [ ] Section-level refresh buttons
-- [ ] Section-level CSV export buttons
-- [ ] Light theme, multi-page, simple UI (Stitch-designed)
+- [x] FastAPI backend with SQLite database
+- [x] Upcoming exams section (next 6 months, default 5, "Show All")
+- [x] Exam selector (dropdown + manual input)
+- [x] Amazon & Flipkart scraping pipeline
+- [x] Competitor book analysis (pricing, ratings, marketplace presence)
+- [x] AI sentiment analysis & feature gap detection
+- [x] Live activity log panel (right side)
+- [x] Section-level refresh buttons
+- [x] Section-level CSV export buttons
+- [x] Light theme, multi-page, simple UI (Stitch-designed)
 
 ## Phases
 
@@ -48,7 +48,7 @@
 - Rate limiting, retry logic, error handling
 
 ### Phase 4: Book Analysis & Competitor Intelligence
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Build the core book analysis dashboard with competitor comparison
 **Deliverables**:
 - Competitor books table (title, author, publisher, format, marketplace presence)
@@ -58,7 +58,7 @@
 - Competitor pricing comparison charts
 
 ### Phase 5: AI Analysis & Recommendations
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Integrate Claude AI for sentiment analysis, feature extraction, and launch recommendations
 **Deliverables**:
 - Review sentiment analysis (positive/negative/neutral distribution)
@@ -69,12 +69,19 @@
 - Ideal book specification suggestions
 
 ### Phase 6: Polish & Integration
-**Status**: ⬜ Not Started
-**Objective**: Final UI polish, end-to-end testing, performance optimization
+**Status**: ✅ Complete
+**Objective**: Final UX refinement, performance tuning, and comprehensive testing
 **Deliverables**:
-- All section-level refresh buttons working
-- All section-level CSV exports verified
-- Activity log fully integrated across all operations
-- Error states and empty states designed
-- Performance optimization (caching, lazy loading)
-- End-to-end testing of full workflow
+- [x] All section refresh buttons fully operational
+- [x] CSV exports working seamlessly for all data tables
+- [x] Graceful error handling and empty states implemented
+- [x] End-to-end functionality verified (Scrape -> Analyze -> View -> Export)
+
+### Phase 7: Process & Logic Documentation
+**Status**: ✅ Complete
+**Objective**: Document the internal definitions, workflows, and logical calculations powering the dashboard into a user-facing view.
+**Deliverables**:
+- [x] Dedicated "Process & Logic" page or tab
+- [x] Documentation of KPI calculations (TAM, Price Gaps)
+- [x] Explanation of the pipeline orchestration (Scrape -> Analyze)
+- [x] Outline of AI prompt methodologies for transparency

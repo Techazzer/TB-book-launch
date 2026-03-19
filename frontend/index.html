@@ -4,22 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Testbook Catalog Planner</title>
+    <title>Book Launch Intelligence — Testbook Catalog Planner</title>
     <meta name="description" content="Exam Book Market Intelligence & Launch Analysis Dashboard for Testbook">
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/styles.css?v=20260319">
 </head>
 
 <body>
     <div class="landing-container">
         <div class="landing-hero">
             <div class="landing-logo">📘</div>
-            <h1>Testbook Catalog Planner</h1>
-            <p>Market intelligence for exam book launches. Scrape Amazon & Flipkart, analyze competitors, identify gaps,
+            <h1>Book Launch Intelligence</h1>
+            <p>Market intelligence for exam book launches. Scrape Amazon India, analyze competitors, identify gaps,
                 and make data-driven publishing decisions.</p>
-            <a href="/dashboard" class="btn btn-primary"
-                style="padding: 12px 28px; font-size: 14px; border-radius: 10px;">
-                Open Dashboard →
-            </a>
+            <div style="display: flex; gap: 16px; justify-content: center; margin-top: 24px;">
+                <a href="/dashboard" class="btn btn-primary"
+                    style="padding: 12px 28px; font-size: 14px; border-radius: 10px;">
+                    Open Dashboard →
+                </a>
+                <a href="/process" class="btn"
+                    style="padding: 12px 28px; font-size: 14px; border-radius: 10px; background: white;">
+                    View Process & Logic
+                </a>
+            </div>
         </div>
 
         <div class="landing-features">
@@ -31,18 +37,19 @@
             </div>
             <div class="landing-feature">
                 <div style="font-size:24px; margin-bottom:10px;">📊</div>
-                <h3>Competitor Analysis</h3>
-                <p>Scrape Amazon & Flipkart for competitor books, pricing, ratings, bestseller rankings, and marketplace
+                <h3>Amazon Competitor Data</h3>
+                <p>Scrape Amazon India for competitor books, BSR rankings, pricing, format distribution, and marketplace
                     presence.</p>
             </div>
             <div class="landing-feature">
                 <div style="font-size:24px; margin-bottom:10px;">🤖</div>
-                <h3>AI Insights</h3>
-                <p>Claude-powered sentiment analysis, feature gap detection, and launch recommendations based on review
-                    intelligence.</p>
+                <h3>AI-Powered Check</h3>
+                <p>On-demand Claude-powered sentiment analysis and market gap detection based on inline reader reviews.</p>
             </div>
         </div>
     </div>
+    
+    <script src="/static/js/app.js?v=20260319"></script>
 </body>
 
 </html>

@@ -11,6 +11,7 @@ def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(str(path))
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=5000")  # Wait up to 5 seconds for locks
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -32,15 +33,19 @@ def init_db():
         -- Exam schedule / upcoming exams
         CREATE TABLE IF NOT EXISTS exam_schedule (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            exam_name TEXT NOT NULL,
+            exam_name TEXT UNIQUE NOT NULL,
+            conducting_body TEXT,
             notification_date TEXT,
             application_start TEXT,
             application_end TEXT,
             expected_exam_date TEXT,
+            vacancy_posts TEXT,
             exam_cycle TEXT,
             estimated_applicants TEXT,
             source_url TEXT,
             source_name TEXT,
+            official_notification_link TEXT,
+            last_update_date TEXT,
             notes TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -66,6 +71,8 @@ def init_db():
             pages INTEGER,
             language TEXT,
             isbn TEXT,
+            asin TEXT,
+            amazon_rank TEXT,
             description TEXT,
             is_bestseller INTEGER DEFAULT 0,
             scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

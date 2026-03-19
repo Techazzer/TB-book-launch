@@ -60,6 +60,11 @@ async def serve_all_exams():
     return FileResponse(str(FRONTEND_DIR / "all-exams.html"))
 
 
+@app.get("/process")
+async def serve_process():
+    return FileResponse(str(FRONTEND_DIR / "process.html"))
+
+
 # ── Health Check ─────────────────────────────────────────────────────────────
 @app.get("/api/health")
 def health_check():

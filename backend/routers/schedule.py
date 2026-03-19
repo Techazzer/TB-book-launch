@@ -78,9 +78,11 @@ def export_schedule_csv():
     output = io.StringIO()
     writer = csv.DictWriter(
         output,
-        fieldnames=["exam_name", "notification_date", "application_start",
-                     "application_end", "expected_exam_date", "exam_cycle",
-                     "estimated_applicants", "source_url", "source_name", "notes"],
+        fieldnames=["exam_name", "conducting_body", "notification_date",
+                     "application_start", "application_end",
+                     "expected_exam_date", "vacancy_posts", "exam_cycle",
+                     "estimated_applicants", "source_url", "source_name",
+                     "official_notification_link", "last_update_date", "notes"],
     )
     writer.writeheader()
     for s in schedules:

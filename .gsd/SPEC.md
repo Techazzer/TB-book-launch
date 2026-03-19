@@ -11,6 +11,7 @@ An internal market intelligence dashboard for Testbook's exam book publishing te
 3. **AI-powered analysis** — Sentiment analysis on reviews, feature gap detection, competitor spec comparison (PYQ/theory/mixed)
 4. **Launch decision support** — Recommend ideal book specifications, pricing strategy, and launch timing based on exam cycles
 5. **Exportable insights** — Section-level CSV downloads for every dashboard section
+6. **Process transparency** — In-app documentation page detailing KPI calculations, scraping workflows, and AI logic
 
 ## Non-Goals (Out of Scope)
 - User authentication / login system (internal-only tool)

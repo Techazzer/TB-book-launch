@@ -51,21 +51,40 @@ def upsert_exam_schedule(data: dict) -> int:
     cur = conn.cursor()
     cur.execute(
         """INSERT INTO exam_schedule
-            (exam_name, notification_date, application_start, application_end,
-             expected_exam_date, exam_cycle, estimated_applicants,
-             source_url, source_name, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT DO NOTHING""",
+            (exam_name, conducting_body, notification_date, application_start,
+             application_end, expected_exam_date, vacancy_posts, exam_cycle,
+             estimated_applicants, source_url, source_name,
+             official_notification_link, last_update_date, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(exam_name) DO UPDATE SET
+             conducting_body = excluded.conducting_body,
+             notification_date = excluded.notification_date,
+             application_start = excluded.application_start,
+             application_end = excluded.application_end,
+             expected_exam_date = excluded.expected_exam_date,
+             vacancy_posts = excluded.vacancy_posts,
+             exam_cycle = excluded.exam_cycle,
+             estimated_applicants = excluded.estimated_applicants,
+             source_url = excluded.source_url,
+             source_name = excluded.source_name,
+             official_notification_link = excluded.official_notification_link,
+             last_update_date = excluded.last_update_date,
+             notes = excluded.notes,
+             updated_at = CURRENT_TIMESTAMP""",
         (
             data.get("exam_name"),
+            data.get("conducting_body"),
             data.get("notification_date"),
             data.get("application_start"),
             data.get("application_end"),
             data.get("expected_exam_date"),
+            data.get("vacancy_posts"),
             data.get("exam_cycle"),
             data.get("estimated_applicants"),
             data.get("source_url"),
             data.get("source_name"),
+            data.get("official_notification_link"),
+            data.get("last_update_date"),
             data.get("notes"),
         ),
     )
@@ -79,14 +98,16 @@ def get_upcoming_exams(limit: Optional[int] = None) -> list[dict]:
     conn = get_connection()
     cur = conn.cursor()
     query = """
-        SELECT * FROM exam_schedule 
-        WHERE expected_exam_date IS NOT NULL 
+        SELECT * FROM exam_schedule
+        WHERE expected_exam_date IS NOT NULL
         AND expected_exam_date >= date('now')
         ORDER BY expected_exam_date ASC
     """
     if limit:
-        query += f" LIMIT {limit}"
-    cur.execute(query)
+        query += " LIMIT ?"
+        cur.execute(query, (limit,))
+    else:
+        cur.execute(query)
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -119,8 +140,8 @@ def insert_product(exam_id: int, data: dict) -> int:
             (exam_id, title, author, publisher, marketplace, product_url,
              image_url, price, mrp, discount, rating, review_count,
              best_seller_rank, book_format, pages, language, isbn,
-             description, is_bestseller)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             asin, amazon_rank, description, is_bestseller)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             exam_id,
             data.get("title", ""),
@@ -139,6 +160,8 @@ def insert_product(exam_id: int, data: dict) -> int:
             data.get("pages"),
             data.get("language"),
             data.get("isbn"),
+            data.get("asin"),
+            data.get("amazon_rank"),
             data.get("description"),
             data.get("is_bestseller", 0),
         ),
@@ -207,7 +230,7 @@ def insert_review(product_id: int, data: dict) -> int:
             data.get("verified_purchase", 0),
             data.get("helpful_count", 0),
             data.get("marketplace"),
-        ),
+        )
     )
     conn.commit()
     last_id = cur.lastrowid
@@ -225,6 +248,13 @@ def get_reviews_by_product(product_id: int) -> list[dict]:
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def delete_reviews_by_product(product_id: int):
+    conn = get_connection()
+    conn.execute("DELETE FROM reviews WHERE product_id = ?", (product_id,))
+    conn.commit()
+    conn.close()
 
 
 # ── AI Analysis ──────────────────────────────────────────────────────────────
@@ -257,9 +287,15 @@ def get_analysis_by_product(product_id: int) -> Optional[dict]:
     if row:
         result = dict(row)
         if result.get("sentiment_data"):
-            result["sentiment_data"] = json.loads(result["sentiment_data"])
+            try:
+                result["sentiment_data"] = json.loads(result["sentiment_data"])
+            except json.JSONDecodeError:
+                result["sentiment_data"] = None
         if result.get("feature_data"):
-            result["feature_data"] = json.loads(result["feature_data"])
+            try:
+                result["feature_data"] = json.loads(result["feature_data"])
+            except json.JSONDecodeError:
+                result["feature_data"] = None
         return result
     return None
 
@@ -280,9 +316,15 @@ def get_analyses_by_exam(exam_id: int) -> list[dict]:
     for row in rows:
         r = dict(row)
         if r.get("sentiment_data"):
-            r["sentiment_data"] = json.loads(r["sentiment_data"])
+            try:
+                r["sentiment_data"] = json.loads(r["sentiment_data"])
+            except json.JSONDecodeError:
+                r["sentiment_data"] = None
         if r.get("feature_data"):
-            r["feature_data"] = json.loads(r["feature_data"])
+            try:
+                r["feature_data"] = json.loads(r["feature_data"])
+            except json.JSONDecodeError:
+                r["feature_data"] = None
         results.append(r)
     return results
 
@@ -314,9 +356,15 @@ def get_market_gaps(exam_id: int) -> Optional[dict]:
     if row:
         result = dict(row)
         if result.get("gap_data"):
-            result["gap_data"] = json.loads(result["gap_data"])
+            try:
+                result["gap_data"] = json.loads(result["gap_data"])
+            except json.JSONDecodeError:
+                result["gap_data"] = None
         if result.get("recommendations"):
-            result["recommendations"] = json.loads(result["recommendations"])
+            try:
+                result["recommendations"] = json.loads(result["recommendations"])
+            except json.JSONDecodeError:
+                result["recommendations"] = None
         return result
     return None
 
@@ -327,14 +375,17 @@ def get_exam_stats(exam_id: int) -> dict:
     cur = conn.cursor()
     cur.execute(
         """SELECT 
-            COUNT(*) as total_products,
-            AVG(price) as avg_price,
-            AVG(rating) as avg_rating,
-            SUM(CASE WHEN is_bestseller = 1 THEN 1 ELSE 0 END) as bestseller_count,
-            SUM(CASE WHEN marketplace = 'Amazon' THEN 1 ELSE 0 END) as amazon_count,
-            SUM(CASE WHEN marketplace = 'Flipkart' THEN 1 ELSE 0 END) as flipkart_count,
-            SUM(review_count) as total_reviews
-           FROM products WHERE exam_id = ?""",
+            COUNT(p.id) as total_products,
+            AVG(p.price) as avg_price,
+            AVG(p.rating) as avg_rating,
+            SUM(CASE WHEN p.is_bestseller = 1 THEN 1 ELSE 0 END) as bestseller_count,
+            SUM(CASE WHEN p.marketplace = 'Amazon' THEN 1 ELSE 0 END) as amazon_count,
+            SUM(p.review_count) as total_reviews,
+            MAX(s.estimated_applicants) as estimated_applicants
+           FROM products p
+           LEFT JOIN exams e ON p.exam_id = e.id
+           LEFT JOIN exam_schedule s ON e.name = s.exam_name
+           WHERE p.exam_id = ?""",
         (exam_id,),
     )
     row = cur.fetchone()

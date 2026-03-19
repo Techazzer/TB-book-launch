@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Upcoming Exams — Testbook Catalog Planner</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <title>All Upcoming Exams — Book Launch Intelligence</title>
+    <link rel="stylesheet" href="/static/css/styles.css?v=20260319">
 </head>
 
 <body>
@@ -14,11 +14,12 @@
     <header class="topbar">
         <a href="/" class="topbar-brand">
             <span class="topbar-brand-icon">📘</span>
-            Testbook Catalog Planner
+            Book Launch
         </a>
         <nav class="topbar-nav">
             <a href="/dashboard">Dashboard</a>
             <a href="/all-exams" class="active">Exams</a>
+            <a href="/process">Process & Logic</a>
         </nav>
         <div class="topbar-right">
             <span class="topbar-bell">🔔</span>
@@ -39,7 +40,7 @@
                     notifications and internal estimates.</p>
             </div>
             <div class="page-header-actions">
-                <button class="btn" onclick="refreshExams()">🔄 Refresh Data</button>
+                <button class="btn" id="refreshBtn" onclick="refreshExams()">🔄 Refresh Data</button>
                 <button class="btn btn-primary" onclick="downloadCSV()">📥 Download CSV</button>
             </div>
         </div>
@@ -78,9 +79,12 @@
                             <tr>
                                 <th>Exam Name</th>
                                 <th>Category</th>
+                                <th>Conducting Body</th>
+                                <th>Post Date / Last Update</th>
                                 <th>Notification Date</th>
                                 <th>Application Window</th>
                                 <th>Tentative Exam</th>
+                                <th>Vacancy</th>
                                 <th>Est. TAM</th>
                                 <th>Source</th>
                                 <th></th>
@@ -100,8 +104,9 @@
         </div>
     </div>
 
+    <script src="/static/js/app.js?v=20260319"></script>
     <script>
-        const API = '';
+        const API_URL = ''; // Consistent with app.js
         let allExams = [];
         let filteredExams = [];
         let currentPage = 1;
@@ -112,14 +117,68 @@
 
         async function loadExams() {
             try {
-                const res = await fetch(`${API}/api/schedule/all`);
-                allExams = await res.json();
+                const res = await fetch(`${API_URL}/api/schedule/all`);
+                const data = await res.json();
+
+                // Filter exams: ONLY show next 12 months and exclude past exams
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const twelveMonthsFromNow = new Date();
+                twelveMonthsFromNow.setMonth(today.getMonth() + 12);
+
+                allExams = data.filter(e => {
+                    const parsed = parseExamDate(e.expected_exam_date, e.exam_name);
+                    if (parsed === null) return true; // Keep "Notified Soon" etc.
+                    if (parsed.getTime() === 0) return false; // Past year
+                    if (parsed < today) return false;
+                    if (parsed > twelveMonthsFromNow) return false;
+                    return true;
+                });
+
                 filteredExams = [...allExams];
                 renderTable();
             } catch (err) {
                 document.getElementById('examsTableBody').innerHTML =
-                    '<tr><td colspan="8" class="empty-state" style="padding:48px;">No exam schedule data available yet.</td></tr>';
+                    '<tr><td colspan="11" class="empty-state" style="padding:48px;">No exam schedule data available yet.</td></tr>';
             }
+        }
+
+        function parseExamDate(dateStr, examName) {
+            if (!dateStr || dateStr === 'Not Available' || dateStr.toLowerCase().includes('soon')) {
+                return null;
+            }
+
+            let normalized = dateStr.trim();
+            const currentYear = new Date().getFullYear();
+
+            if (examName) {
+                const extracted = examName.match(/\b(\d{4})\b/);
+                if (extracted && parseInt(extracted[1], 10) < (currentYear - 1) && parseInt(extracted[1], 10) > 2000) {
+                    return new Date(0);
+                }
+            }
+
+            const yearMatch = normalized.match(/\b(\d{4})\b/);
+            if (yearMatch) {
+                const year = parseInt(yearMatch[1], 10);
+                if (year < currentYear) {
+                    return new Date(0);
+                }
+            }
+
+            normalized = normalized.replace(/(\d{1,2})\s*(?:-|to)\s*(\d{1,2})\s+([a-zA-Z]+)/i, '$2 $3');
+
+            const dmYMatch = normalized.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+            if (dmYMatch) {
+                normalized = `${dmYMatch[3]}-${dmYMatch[2].padStart(2, '0')}-${dmYMatch[1].padStart(2, '0')}`;
+            }
+
+            const parsed = new Date(normalized);
+            if (!isNaN(parsed.getTime())) {
+                return parsed;
+            }
+
+            return null;
         }
 
         function getCategory(examName) {
@@ -139,20 +198,20 @@
             return map[cat] || 'cat-other';
         }
 
-        function getSourceBadge(source) {
+        function getSourceBadge(source, sourceUrl) {
             if (!source) return '—';
-            const s = source.toLowerCase();
-            if (s.includes('official')) return '<span class="source-badge source-official">✅ Official</span>';
-            if (s.includes('blog')) return '<span class="source-badge source-blog">📄 Blog Est.</span>';
-            if (s.includes('news')) return '<span class="source-badge source-news">📄 News Est.</span>';
-            return `<span class="source-badge">${source}</span>`;
+            const label = source === 'SarkariResult' ? '🔗 SarkariResult' : source;
+            if (sourceUrl) {
+                return `<a href="${sourceUrl}" target="_blank" rel="noopener" class="source-badge source-official" style="text-decoration:none; cursor:pointer;">${label}</a>`;
+            }
+            return `<span class="source-badge">${label}</span>`;
         }
 
         function filterByCategory(cat) {
             currentCategory = cat;
             currentPage = 1;
             document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+            if (event) event.target.classList.add('active');
             applyFilters();
         }
 
@@ -179,7 +238,7 @@
             const pageItems = filteredExams.slice(start, end);
 
             if (pageItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state" style="padding:40px;">No exams match your filters.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-state" style="padding:40px;">No exams match your filters.</td></tr>';
             } else {
                 tbody.innerHTML = pageItems.map(e => {
                     const cat = getCategory(e.exam_name);
@@ -189,11 +248,14 @@
                             <div style="font-size:11px; color:var(--text-light);">${e.notes || ''}</div>
                         </td>
                         <td><span class="cat-badge ${getCatClass(cat)}">${cat}</span></td>
-                        <td>${e.notification_date || '—'}</td>
-                        <td>${e.application_start && e.application_end ? `${e.application_start} → ${e.application_end}` : (e.application_start || '<em style="color:var(--text-light)">TBD</em>')}</td>
-                        <td style="color: var(--brand); font-weight:600;">${e.expected_exam_date || 'TBD'}</td>
-                        <td>${e.estimated_applicants ? `~${e.estimated_applicants}` : '—'}</td>
-                        <td>${getSourceBadge(e.source_name)}</td>
+                        <td><span style="font-weight:600; font-size:12px; color:var(--text-light)">${e.conducting_body && e.conducting_body !== 'Not Available' ? e.conducting_body : '—'}</span></td>
+                        <td><span style="font-size:12px; color:var(--text-dark); background:var(--bg-light); padding:2px 6px; border-radius:4px;">${e.last_update_date && e.last_update_date !== 'Not Available' ? e.last_update_date : '—'}</span></td>
+                        <td>${e.notification_date && e.notification_date !== 'Not Available' ? e.notification_date : '<em style="color:var(--text-light)">Not Available</em>'}</td>
+                        <td>${e.application_start && e.application_start !== 'Not Available' && e.application_end && e.application_end !== 'Not Available' ? `${e.application_start} → ${e.application_end}` : '<em style="color:var(--text-light)">Not Available</em>'}</td>
+                        <td style="color: var(--brand); font-weight:600;">${e.expected_exam_date && e.expected_exam_date !== 'Not Available' ? e.expected_exam_date : '<em style="color:var(--text-light)">Not Available</em>'}</td>
+                        <td>${e.vacancy_posts && e.vacancy_posts !== 'Not Available' ? e.vacancy_posts : '<em style="color:var(--text-light)">Not Available</em>'}</td>
+                        <td>${e.estimated_applicants && e.estimated_applicants !== 'Not Available' ? e.estimated_applicants : '<em style="color:var(--text-light)">—</em>'}</td>
+                        <td>${getSourceBadge(e.source_name, e.source_url)}</td>
                         <td style="cursor:pointer; color:var(--text-light);">⋮</td>
                     </tr>`;
                 }).join('');
@@ -232,8 +294,20 @@
             renderTable();
         }
 
-        async function refreshExams() { await loadExams(); }
-        function downloadCSV() { window.location.href = `${API}/api/schedule/csv`; }
+        async function refreshExams() {
+            const btn = document.getElementById('refreshBtn');
+            btn.innerHTML = '🔄 Scraping Data...';
+            btn.disabled = true;
+            try {
+                await fetch(`${API_URL}/api/schedule/refresh`, { method: 'POST' });
+            } catch (err) {
+                console.error("Failed to refresh", err);
+            }
+            btn.innerHTML = '🔄 Refresh Data';
+            btn.disabled = false;
+            await loadExams();
+        }
+        function downloadCSV() { window.location.href = `${API_URL}/api/schedule/csv`; }
     </script>
 </body>
 

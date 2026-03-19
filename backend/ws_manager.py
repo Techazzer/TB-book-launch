@@ -43,7 +43,7 @@ class ActivityLogManager:
         disconnected = []
         for connection in self.active_connections:
             try:
-                await connection.send_json(entry)
+                await connection.send_text(json.dumps(entry))
             except Exception:
                 disconnected.append(connection)
         for conn in disconnected:

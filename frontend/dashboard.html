@@ -4,13 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard — Testbook Catalog Planner</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <title>Dashboard — Book Launch Intelligence</title>
+    <meta name="description" content="Amazon competitor intelligence for exam preparation books">
+    <link rel="stylesheet" href="/static/css/styles.css?v=20260319">
 </head>
 
 <body>
 
-    <!-- ─── Top Navigation ─────────────────────────────────────────── -->
+    <!-- ─── Top Navigation ──────────────────────────────────────────────── -->
     <header class="topbar">
         <a href="/" class="topbar-brand">
             <span class="topbar-brand-icon">📘</span>
@@ -19,6 +20,7 @@
         <nav class="topbar-nav">
             <a href="/dashboard" class="active">Dashboard</a>
             <a href="/all-exams">Exams</a>
+            <a href="/process">Process &amp; Logic</a>
         </nav>
         <div class="topbar-right">
             <span class="topbar-bell">🔔</span>
@@ -26,157 +28,199 @@
         </div>
     </header>
 
-    <!-- ─── Main Page ──────────────────────────────────────────────── -->
+    <!-- ─── Main Page ────────────────────────────────────────────────────── -->
     <div class="page-container page-with-log">
         <div class="page-main">
 
-            <!-- ── Upcoming Exams ──────────────────────────────────── -->
+            <!-- ── Upcoming Exams ─────────────────────────────────────── -->
             <div class="section-bar">
                 <h2 class="section-title">📋 Upcoming Exams (Next 6 Months)</h2>
-                <a href="/all-exams" class="view-all-link">View All Exams →</a>
+                <div>
+                    <button class="btn btn-sm" id="dashboardRefreshBtn" onclick="refreshUpcomingExams()"
+                        style="margin-right:12px;">🔄 Refresh</button>
+                    <a href="/all-exams" class="view-all-link">View All →</a>
+                </div>
             </div>
+            <div class="exam-cards-row" id="upcomingExamsRow"></div>
 
-            <div class="exam-cards-row" id="upcomingExamsRow">
-                <!-- Populated by JS -->
-            </div>
-
-            <!-- ── Exam Selector ───────────────────────────────────── -->
+            <!-- ── Control Bar ────────────────────────────────────────── -->
             <div class="exam-selector-box">
                 <label>Select Exam for Detailed Analysis</label>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <select class="exam-select" id="examSelect" onchange="onExamSelected()" style="flex: 1;">
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <!-- 1. Exam selector -->
+                    <select class="exam-select" id="examSelect" onchange="onExamSelected()" style="flex:1; min-width:200px;">
                         <option value="">— Choose an exam —</option>
                     </select>
-                    <button class="btn" onclick="scrapeExam()" id="scrapeBtn" style="white-space: nowrap;">⚡️ Scrape
-                        Data</button>
+
+                    <!-- 2. Product count dropdown -->
+                    <select class="exam-select" id="productCount" style="width:160px;">
+                        <option value="10">10 products</option>
+                        <option value="20" selected>20 products</option>
+                        <option value="50">50 products</option>
+                        <option value="100">100 products</option>
+                        <option value="200">200 products</option>
+                    </select>
+
+                    <!-- 3. Scrape button -->
+                    <button class="btn" onclick="scrapeExam()" id="scrapeBtn" style="white-space:nowrap;">
+                        ⚡ Scrape Data
+                    </button>
+
+                    <!-- 4. Sentiment Check button -->
+                    <button class="btn btn-outline" onclick="runSentimentCheck()" id="sentimentBtn"
+                        style="white-space:nowrap; display:none;">
+                        🧠 Sentiment Check
+                    </button>
                 </div>
             </div>
 
-            <!-- ── Analysis Tabs ───────────────────────────────────── -->
+            <!-- ── Analysis Tabs ──────────────────────────────────────── -->
             <div id="analysisTabs" style="display:none;">
                 <div class="tabs">
-                    <div class="tab active" data-tab="market" onclick="switchTab('market')">Market & TAM</div>
-                    <div class="tab" data-tab="pricing" onclick="switchTab('pricing')">Pricing & Competitors</div>
-                    <div class="tab" data-tab="content" onclick="switchTab('content')">Content Analysis</div>
-                    <div class="tab" data-tab="sentiment" onclick="switchTab('sentiment')">Sentiment & Gaps</div>
+                    <div class="tab active" data-tab="competitor" onclick="switchTab('competitor')">🏆 Competitor Analysis</div>
+                    <div class="tab" data-tab="reviews" onclick="switchTab('reviews')">📝 Raw Reviews</div>
+                    <div class="tab" data-tab="sentiment" onclick="switchTab('sentiment')">💬 Sentiment &amp; Gaps</div>
                 </div>
 
-                <!-- ── Tab: Market & TAM ───────────────────────────── -->
-                <div class="tab-panel" id="panel-market">
-                    <div class="kpi-row" id="marketKpis">
+                <!-- ═══════════════════════════════════════════════════════
+                     TAB 1: COMPETITOR ANALYSIS
+                     ═══════════════════════════════════════════════════════ -->
+                <div class="tab-panel" id="panel-competitor">
+
+                    <!-- KPI Cards Row -->
+                    <div class="kpi-row" id="compKpis">
                         <div class="kpi-card">
-                            <div class="kpi-card-header">
-                                <span class="kpi-label">📊 Total Addressable Market</span>
-                            </div>
-                            <div class="kpi-value" id="kpiTAM">—</div>
-                            <div class="kpi-desc" id="kpiTAMDesc">Estimated applicants based on past cycles.</div>
+                            <div class="kpi-card-header"><span class="kpi-label">🏪 Products Scraped</span></div>
+                            <div class="kpi-value" id="kpiTotal">—</div>
+                            <div class="kpi-desc">Books extracted from Amazon India.</div>
                         </div>
                         <div class="kpi-card">
-                            <div class="kpi-card-header">
-                                <span class="kpi-label">⭐ Average Rating</span>
-                            </div>
-                            <div class="kpi-value" id="kpiRating">—<span class="kpi-unit" id="kpiRatingCount"></span>
-                            </div>
-                            <div class="kpi-desc">Aggregate rating across all platforms.</div>
+                            <div class="kpi-card-header"><span class="kpi-label">⭐ Avg Rating</span></div>
+                            <div class="kpi-value" id="kpiRating">—<span class="kpi-unit" id="kpiRatingBase"> / 5</span></div>
+                            <div class="kpi-desc" id="kpiRatingDesc">Rated products only.</div>
                         </div>
                         <div class="kpi-card">
-                            <div class="kpi-card-header">
-                                <span class="kpi-label">₹ Category Avg. Price</span>
-                            </div>
+                            <div class="kpi-card-header"><span class="kpi-label">₹ Avg Amazon Price</span></div>
                             <div class="kpi-value" id="kpiAvgPrice">—</div>
-                            <div class="kpi-desc">Median price across Amazon & Flipkart top 50.</div>
-                        </div>
-                    </div>
-
-                    <!-- Top 20 Ranked Books -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Top 20 Ranked Books list Marketplace wise and their details</h3>
-                            <div class="card-actions">
-                                <button class="btn btn-sm" onclick="downloadCSV('products')">📥 CSV</button>
-                                <button class="btn btn-sm" onclick="refreshSection('market')">🔄 Refresh</button>
-                            </div>
-                        </div>
-                        <div class="card-body flush">
-                            <div class="table-wrapper">
-                                <table class="data-table" id="topBooksTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Book Title</th>
-                                            <th>Type</th>
-                                            <th>Author</th>
-                                            <th>Amazon Price</th>
-                                            <th>Rating (Reviews)</th>
-                                            <th>Rank on Amazon</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="topBooksBody">
-                                        <tr>
-                                            <td colspan="6" class="empty-state" style="padding:40px;">Select an exam to
-                                                view books.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ── Tab: Pricing & Competitors ──────────────────── -->
-                <div class="tab-panel" id="panel-pricing" style="display:none;">
-                    <div class="kpi-row">
-                        <div class="kpi-card">
-                            <div class="kpi-card-header">
-                                <span class="kpi-label">🛒 Amazon Avg. Price</span>
-                            </div>
-                            <div class="kpi-value" id="kpiAmazonPrice">—</div>
-                            <div class="kpi-desc">Average across top 20 category bestsellers.</div>
+                            <div class="kpi-desc">Across all scraped products.</div>
                         </div>
                         <div class="kpi-card">
-                            <div class="kpi-card-header">
-                                <span class="kpi-label">🛍️ Flipkart Avg. Price</span>
-                            </div>
-                            <div class="kpi-value" id="kpiFlipkartPrice">—</div>
-                            <div class="kpi-desc">Average across top 20 category bestsellers.</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-card-header">
-                                <span class="kpi-label">📊 Price Gap (Best-Seller vs Avg)</span>
-                            </div>
+                            <div class="kpi-card-header"><span class="kpi-label">📊 Price Gap (Best vs Avg)</span></div>
                             <div class="kpi-value" id="kpiPriceGap">—</div>
-                            <div class="kpi-desc">Best-seller is priced lower than average.</div>
+                            <div class="kpi-desc">Best-seller price vs average.</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-card-header"><span class="kpi-label">👥 Total Addressable Market</span></div>
+                            <div class="kpi-value" id="kpiTAM">—</div>
+                            <div class="kpi-desc">Est. applicants for this exam.</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-card-header"><span class="kpi-label">🏅 Top BSR</span></div>
+                            <div class="kpi-value" id="kpiTopBSR">—</div>
+                            <div class="kpi-desc">Best seller rank among scraped books.</div>
                         </div>
                     </div>
 
+                    <!-- Charts Row: Ratings + Format + Language -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:24px;">
 
-                    <!-- Competitor Pricing Table -->
+                        <!-- Ratings Distribution -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Ratings Distribution</h3>
+                                <span class="kpi-desc" id="ratingChartSubtitle" style="font-size:11px;"></span>
+                            </div>
+                            <div class="card-body">
+                                <div class="format-chart" style="display:flex; gap:24px; align-items:flex-end; justify-content:center; height:130px; padding-top:16px;">
+                                    <div class="format-bar-group" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                        <span class="format-pct" id="pct45plus" style="font-size:12px;font-weight:700;">—</span>
+                                        <div id="bar45plus" style="width:40px;height:0;background:var(--green);border-radius:4px 4px 0 0;transition:height .5s ease;"></div>
+                                        <span style="font-size:10px;color:var(--text-mid);">4.5+ ⭐</span>
+                                    </div>
+                                    <div class="format-bar-group" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                        <span class="format-pct" id="pct4to45" style="font-size:12px;font-weight:700;">—</span>
+                                        <div id="bar4to45" style="width:40px;height:0;background:var(--blue);border-radius:4px 4px 0 0;transition:height .5s ease;"></div>
+                                        <span style="font-size:10px;color:var(--text-mid);">4.0–4.4</span>
+                                    </div>
+                                    <div class="format-bar-group" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                        <span class="format-pct" id="pctBelow4" style="font-size:12px;font-weight:700;">—</span>
+                                        <div id="barBelow4" style="width:40px;height:0;background:var(--orange);border-radius:4px 4px 0 0;transition:height .5s ease;"></div>
+                                        <span style="font-size:10px;color:var(--text-mid);">&lt; 4.0</span>
+                                    </div>
+                                    <div class="format-bar-group" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                        <span class="format-pct" id="pctUnrated" style="font-size:12px;font-weight:700;">—</span>
+                                        <div id="barUnrated" style="width:40px;height:0;background:var(--border-strong);border-radius:4px 4px 0 0;transition:height .5s ease;"></div>
+                                        <span style="font-size:10px;color:var(--text-mid);">Unrated</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Format Distribution -->
+                        <div class="card">
+                            <div class="card-header"><h3>Format Distribution</h3></div>
+                            <div class="card-body">
+                                <div class="format-chart" style="display:flex; gap:24px; align-items:flex-end; justify-content:center; height:130px; padding-top:16px;">
+                                    <div class="format-bar-group" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                        <span class="format-pct" id="pctPYQ" style="font-size:12px;font-weight:700;">—</span>
+                                        <div id="barPYQ" style="width:40px;height:0;background:#6366f1;border-radius:4px 4px 0 0;transition:height .5s ease;"></div>
+                                        <span style="font-size:10px;color:var(--text-mid);">PYQ</span>
+                                    </div>
+                                    <div class="format-bar-group" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                        <span class="format-pct" id="pctTheory" style="font-size:12px;font-weight:700;">—</span>
+                                        <div id="barTheory" style="width:40px;height:0;background:#0ea5e9;border-radius:4px 4px 0 0;transition:height .5s ease;"></div>
+                                        <span style="font-size:10px;color:var(--text-mid);">Theory</span>
+                                    </div>
+                                    <div class="format-bar-group" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                                        <span class="format-pct" id="pctMixed" style="font-size:12px;font-weight:700;">—</span>
+                                        <div id="barMixed" style="width:40px;height:0;background:#f59e0b;border-radius:4px 4px 0 0;transition:height .5s ease;"></div>
+                                        <span style="font-size:10px;color:var(--text-mid);">Mixed</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Language Split -->
+                        <div class="card">
+                            <div class="card-header"><h3>Language Split</h3></div>
+                            <div class="card-body">
+                                <div id="languageChart" style="display:flex; flex-direction:column; gap:10px; padding:8px 0;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Master Consolidated Table -->
                     <div class="card">
                         <div class="card-header">
-                            <h3>Competitor Pricing Comparison</h3>
+                            <h3>All Scraped Books — Consolidated View</h3>
                             <div class="card-actions">
                                 <button class="btn btn-sm" onclick="downloadCSV('products')">📥 CSV</button>
-                                <button class="btn btn-sm" onclick="refreshSection('pricing')">🔄 Refresh</button>
+                                <button class="btn btn-sm" onclick="refreshSection('competitor')">🔄 Refresh</button>
                             </div>
                         </div>
                         <div class="card-body flush">
                             <div class="table-wrapper">
-                                <table class="data-table" id="pricingTable">
+                                <table class="data-table" id="masterTable">
                                     <thead>
                                         <tr>
-                                            <th>Competitor Name</th>
-                                            <th>Amazon Price</th>
-                                            <th>Price Gap (from Avg)</th>
-                                            <th>Pages</th>
+                                            <th>#</th>
+                                            <th>Book Title</th>
                                             <th>Author</th>
-                                            <th>Rank on Amazon</th>
+                                            <th>Publisher</th>
+                                            <th>Format</th>
+                                            <th>Pages</th>
+                                            <th>Language</th>
+                                            <th>Price (₹)</th>
+                                            <th>MRP (₹)</th>
+                                            <th>Discount</th>
                                             <th>Rating</th>
+                                            <th>Reviews</th>
+                                            <th>BSR Rank</th>
+                                            <th>Link</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="pricingBody">
-                                        <tr>
-                                            <td colspan="7" class="empty-state" style="padding:40px;">Select an exam to
-                                                view pricing data.</td>
-                                        </tr>
+                                    <tbody id="masterTableBody">
+                                        <tr><td colspan="14" class="empty-state" style="padding:40px;">Select an exam and click ⚡ Scrape Data to load books.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -184,61 +228,33 @@
                     </div>
                 </div>
 
-                <!-- ── Tab: Content Analysis ───────────────────────── -->
-                <div class="tab-panel" id="panel-content" style="display:none;">
-                    <!-- Format Distribution -->
-                    <div class="card" style="margin-bottom:24px;">
-                        <div class="card-header">
-                            <h3>Specification Summary (Format Distribution)</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="format-chart" id="formatChart">
-                                <div class="format-bar-group">
-                                    <span class="format-pct" id="pctPYQ">—</span>
-                                    <div class="format-bar pyq" id="barPYQ" style="height:0;"></div>
-                                    <span class="format-label">PYQ</span>
-                                </div>
-                                <div class="format-bar-group">
-                                    <span class="format-pct" id="pctTheory">—</span>
-                                    <div class="format-bar theory" id="barTheory" style="height:0;"></div>
-                                    <span class="format-label">Theory</span>
-                                </div>
-                                <div class="format-bar-group">
-                                    <span class="format-pct" id="pctMixed">—</span>
-                                    <div class="format-bar mixed" id="barMixed" style="height:0;"></div>
-                                    <span class="format-label">Mixed</span>
-                                </div>
-                            </div>
+                <!-- ═══════════════════════════════════════════════════════
+                     TAB 2: RAW REVIEWS
+                     ═══════════════════════════════════════════════════════ -->
+                <div class="tab-panel" id="panel-reviews" style="display:none;">
+                    <div class="section-bar">
+                        <h2 class="section-title" style="font-size:16px;">📝 Raw Amazon Reviews</h2>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn btn-sm" onclick="downloadReviewsCSV()">📥 CSV</button>
+                            <button class="btn btn-sm" onclick="refreshSection('reviews')">🔄 Refresh</button>
                         </div>
                     </div>
-
-                    <!-- Content Breakdown -->
                     <div class="card">
-                        <div class="card-header">
-                            <h3>Content Breakdown</h3>
-                            <div class="card-actions">
-                                <button class="btn btn-sm" onclick="downloadCSV('features')">📥 CSV</button>
-                                <button class="btn btn-sm" onclick="refreshSection('content')">🔄 Refresh</button>
-                            </div>
-                        </div>
                         <div class="card-body flush">
                             <div class="table-wrapper">
-                                <table class="data-table" id="contentTable">
+                                <table class="data-table" id="rawReviewsTable">
                                     <thead>
                                         <tr>
                                             <th>Book Title</th>
-                                            <th>Format Type</th>
-                                            <th>Pages</th>
-                                            <th>Year</th>
-                                            <th>Solutions</th>
-                                            <th>Language</th>
+                                            <th>Author</th>
+                                            <th>Amazon Link</th>
+                                            <th>Rating</th>
+                                            <th>Content</th>
+                                            <th>Date</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="contentBody">
-                                        <tr>
-                                            <td colspan="6" class="empty-state" style="padding:40px;">Run AI analysis to
-                                                see content breakdown.</td>
-                                        </tr>
+                                    <tbody id="rawReviewsBody">
+                                        <tr><td colspan="6" class="empty-state" style="padding:40px;">No reviews yet. Run ⚡ Scrape Data — reviews are collected automatically.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -246,108 +262,122 @@
                     </div>
                 </div>
 
-                <!-- ── Tab: Sentiment & Gaps ───────────────────────── -->
+                <!-- ═══════════════════════════════════════════════════════
+                     TAB 3: SENTIMENT & GAPS
+                     ═══════════════════════════════════════════════════════ -->
                 <div class="tab-panel" id="panel-sentiment" style="display:none;">
                     <div class="section-bar">
-                        <h2 class="section-title" style="font-size:16px;">✨ Top 20 Sentiment & Gap Analysis</h2>
-                        <div style="display:flex; gap:6px;">
-                            <button class="btn btn-sm" onclick="downloadCSV('sentiment')">📥 Download CSV</button>
-                            <button class="btn btn-sm" onclick="refreshSection('sentiment')">🔄 Refresh</button>
+                        <h2 class="section-title" style="font-size:16px;" id="sentimentHeader">
+                            💬 Sentiment &amp; Gap Analysis
+                        </h2>
+                        <button class="btn btn-sm" onclick="downloadCSV('sentiment')">📥 CSV</button>
+                    </div>
+
+                    <!-- Empty state before analysis -->
+                    <div id="sentimentEmpty" class="card">
+                        <div class="card-body" style="text-align:center; padding:60px 40px;">
+                            <div style="font-size:48px; margin-bottom:16px;">🧠</div>
+                            <h3 style="font-size:16px; margin-bottom:8px;">No Sentiment Analysis Yet</h3>
+                            <p style="color:var(--text-light); margin-bottom:20px;">
+                                Click <strong>🧠 Sentiment Check</strong> in the control bar to send all collected reviews to Claude AI for analysis.
+                            </p>
+                            <button class="btn" onclick="runSentimentCheck()">🧠 Run Sentiment Check</button>
                         </div>
                     </div>
 
-                    <!-- Sentiment KPIs -->
-                    <div class="sentiment-row" id="sentimentKpis">
-                        <div class="sentiment-card">
-                            <div class="sentiment-card-header">
-                                <span class="sentiment-label">Positive Sentiment</span>
-                                <span class="sentiment-icon">😊</span>
-                            </div>
-                            <div class="sentiment-value" id="sentPositive" style="color: var(--green);">—</div>
-                            <div class="sentiment-bar" style="background: var(--green);"></div>
-                            <div class="sentiment-desc">Aggregated from Top 20 Best-Selling Books on Amazon & Flipkart.
-                            </div>
-                        </div>
-                        <div class="sentiment-card">
-                            <div class="sentiment-card-header">
-                                <span class="sentiment-label">Neutral Sentiment</span>
-                                <span class="sentiment-icon">😐</span>
-                            </div>
-                            <div class="sentiment-value" id="sentNeutral" style="color: var(--yellow);">—</div>
-                            <div class="sentiment-bar" style="background: var(--yellow);"></div>
-                            <div class="sentiment-desc">Mixed feedback on formatting and delivery across top products.
-                            </div>
-                        </div>
-                        <div class="sentiment-card">
-                            <div class="sentiment-card-header">
-                                <span class="sentiment-label">Negative Sentiment</span>
-                                <span class="sentiment-icon">😠</span>
-                            </div>
-                            <div class="sentiment-value" id="sentNegative" style="color: var(--red);">—</div>
-                            <div class="sentiment-bar" style="background: var(--red);"></div>
-                            <div class="sentiment-desc">Critical issues impacting purchase decisions in Top 20 list.
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Sentiment Results (hidden until analysis runs) -->
+                    <div id="sentimentResults" style="display:none;">
 
-                    <!-- Reviews & Complaints by Marketplace -->
-                    <div class="review-complaints" id="reviewComplaints">
-                        <div class="complaint-card" id="amazonComplaints">
-                            <h4>⚠️ Amazon Reviews & Complaints</h4>
-                            <div class="stars-row" id="amazonStars">—</div>
-                            <ul id="amazonComplaintsList"></ul>
+                        <!-- Sentiment KPI Cards -->
+                        <div class="sentiment-row" id="sentimentKpis">
+                            <div class="sentiment-card">
+                                <div class="sentiment-card-header">
+                                    <span class="sentiment-label">Positive Sentiment</span>
+                                    <span class="sentiment-icon">😊</span>
+                                </div>
+                                <div class="sentiment-value" id="sentPositive" style="color:var(--green);">—</div>
+                                <div class="sentiment-bar" id="sentPositiveBar" style="background:var(--green); width:0%;"></div>
+                                <div class="sentiment-desc">Aggregated from all scraped Amazon books.</div>
+                            </div>
+                            <div class="sentiment-card">
+                                <div class="sentiment-card-header">
+                                    <span class="sentiment-label">Neutral Sentiment</span>
+                                    <span class="sentiment-icon">😐</span>
+                                </div>
+                                <div class="sentiment-value" id="sentNeutral" style="color:var(--yellow);">—</div>
+                                <div class="sentiment-bar" id="sentNeutralBar" style="background:var(--yellow); width:0%;"></div>
+                                <div class="sentiment-desc">Mixed or undecided reviews.</div>
+                            </div>
+                            <div class="sentiment-card">
+                                <div class="sentiment-card-header">
+                                    <span class="sentiment-label">Negative Sentiment</span>
+                                    <span class="sentiment-icon">😠</span>
+                                </div>
+                                <div class="sentiment-value" id="sentNegative" style="color:var(--red);">—</div>
+                                <div class="sentiment-bar" id="sentNegativeBar" style="background:var(--red); width:0%;"></div>
+                                <div class="sentiment-desc">Critical issues hurting purchases.</div>
+                            </div>
                         </div>
-                        <div class="complaint-card" id="flipkartComplaints">
-                            <h4>⚠️ Flipkart Reviews & Complaints</h4>
-                            <div class="stars-row" id="flipkartStars">—</div>
-                            <ul id="flipkartComplaintsList"></ul>
+
+                        <!-- Praises + Complaints -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                            <div class="card">
+                                <div class="card-header"><h3>👍 Top Reader Praises</h3></div>
+                                <div class="card-body">
+                                    <ul id="praisesList" style="list-style:none; padding:0; margin:0;"></ul>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><h3>⚠️ Amazon Reviews &amp; Complaints</h3></div>
+                                <div class="card-body">
+                                    <ul id="complaintsList" style="list-style:none; padding:0; margin:0;"></ul>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Consolidated Gap Analysis -->
-                    <div class="gap-section" id="gapAnalysis">
-                        <h3>💡 Consolidated Gap Analysis</h3>
-                        <ul id="gapList">
-                            <li>Run AI analysis to identify market gaps and opportunities.</li>
-                        </ul>
-                    </div>
+                        <!-- Gap Analysis -->
+                        <div class="card" style="margin-bottom:16px;">
+                            <div class="card-header"><h3>💡 Consolidated Gap Analysis</h3></div>
+                            <div class="card-body">
+                                <ul id="gapsList" style="list-style:none; padding:0; margin:0;"></ul>
+                            </div>
+                        </div>
 
-                    <!-- Review Highlights -->
-                    <div class="section-bar" style="margin-top: 24px;">
-                        <h2 class="section-title" style="font-size:16px;">Review Highlights</h2>
-                        <span class="cat-badge cat-other">Filtered by: Critical</span>
-                    </div>
-                    <div id="reviewHighlights">
-                        <div class="empty-state" style="padding: 32px;">
-                            <p style="color: var(--text-light);">Run analysis to see critical review highlights.</p>
+                        <!-- Positioning Recommendation -->
+                        <div class="card">
+                            <div class="card-header"><h3>🎯 Positioning Recommendation</h3></div>
+                            <div class="card-body">
+                                <p id="positioningText" style="color:var(--text-mid); line-height:1.7; font-size:13px;"></p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+
+            </div><!-- /analysisTabs -->
 
             <!-- No Exam Selected -->
             <div id="noExamState" style="display:none;">
-                <div class="empty-state" style="padding: 60px;">
+                <div class="empty-state" style="padding:60px;">
                     <div class="empty-state-icon">📊</div>
                     <h3>Select an Exam</h3>
-                    <p>Choose an exam from the dropdown above to start analysis.</p>
+                    <p>Choose an exam from the dropdown above to begin analysis.</p>
                 </div>
             </div>
 
         </div>
 
-        <!-- ─── Activity Log Panel ────────────────────────────────── -->
+        <!-- ─── Activity Log Panel ───────────────────────────────────── -->
         <aside class="activity-panel" id="activityPanel">
             <div class="activity-header">
                 <h3><span class="activity-dot" id="activityDot"></span> Live Activity Log</h3>
                 <button class="btn btn-sm" onclick="clearLog()"
-                    style="border:none; color: var(--text-light); font-weight:500;">Clear</button>
+                    style="border:none; color:var(--text-light); font-weight:500;">Clear</button>
             </div>
             <div class="activity-log" id="activityLog">
                 <div class="log-entry">
                     <div class="log-icon info">ℹ</div>
                     <div>
-                        <div class="log-text">Dashboard ready. Select an exam to begin analysis.</div>
+                        <div class="log-text">Dashboard ready. Select an exam to begin.</div>
                         <div class="log-time">Just now</div>
                     </div>
                 </div>
@@ -355,7 +385,7 @@
         </aside>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=20260319"></script>
 </body>
 
 </html>

@@ -17,14 +17,18 @@ class ExamOut(ExamBase):
 # ── Exam Schedule Models ─────────────────────────────────────────────────────
 class ExamScheduleBase(BaseModel):
     exam_name: str
+    conducting_body: Optional[str] = None
     notification_date: Optional[str] = None
     application_start: Optional[str] = None
     application_end: Optional[str] = None
     expected_exam_date: Optional[str] = None
+    vacancy_posts: Optional[str] = None
     exam_cycle: Optional[str] = None
     estimated_applicants: Optional[str] = None
     source_url: Optional[str] = None
     source_name: Optional[str] = None
+    official_notification_link: Optional[str] = None
+    last_update_date: Optional[str] = None
     notes: Optional[str] = None
 
 class ExamScheduleOut(ExamScheduleBase):
@@ -51,6 +55,8 @@ class ProductBase(BaseModel):
     pages: Optional[int] = None
     language: Optional[str] = None
     isbn: Optional[str] = None
+    asin: Optional[str] = None
+    amazon_rank: Optional[str] = None
     description: Optional[str] = None
     is_bestseller: int = 0
 

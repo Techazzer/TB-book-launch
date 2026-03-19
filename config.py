@@ -13,12 +13,14 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
+# ── Database ─────────────────────────────────────────────────────────────────
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 DB_PATH = os.getenv("DB_PATH", str(DATA_DIR / "dashboard.db"))
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 # ── API Keys ─────────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-AI_MODEL = "claude-sonnet-4-20250514"
+AI_MODEL = "claude-3-5-sonnet-20241022"
 
 # ── Scraping ─────────────────────────────────────────────────────────────────
 MAX_PRODUCTS_PER_MARKETPLACE = int(os.getenv("MAX_PRODUCTS_PER_MARKETPLACE", "30"))

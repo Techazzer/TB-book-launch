@@ -1,0 +1,37 @@
+{
+  "builds": [
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "backend/main.py"
+    },
+    {
+      "source": "/",
+      "destination": "frontend/index.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "frontend/dashboard.html"
+    },
+    {
+      "source": "/all-exams",
+      "destination": "frontend/all-exams.html"
+    },
+    {
+      "source": "/process",
+      "destination": "frontend/process.html"
+    },
+    {
+      "source": "/static/(.*)",
+      "destination": "frontend/$1"
+    }
+  ],
+  "env": {
+    "PYTHONPATH": "."
+  }
+}

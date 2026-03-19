@@ -1,38 +1,80 @@
-"""SQLite database initialization and schema."""
+"""Database initialization and schema supporting both SQLite (local) and PostgreSQL (Supabase)."""
+import os
 import sqlite3
 from pathlib import Path
-from config import DB_PATH
+from config import DB_PATH, DATABASE_URL
 
+# PostgreSQL adapter imports (conditional)
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+except ImportError:
+    psycopg2 = None
 
-def get_connection() -> sqlite3.Connection:
-    """Get a SQLite connection with WAL mode and foreign keys enabled."""
-    path = Path(DB_PATH)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(path))
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("PRAGMA busy_timeout=5000")  # Wait up to 5 seconds for locks
-    conn.row_factory = sqlite3.Row
-    return conn
+# Global placeholder for raw SQL queries
+PLACEHOLDER = "%s" if DATABASE_URL else "?"
 
+def get_connection():
+    """Returns a database connection."""
+    if DATABASE_URL:
+        if not psycopg2:
+            raise ImportError("psycopg2-binary is required for PostgreSQL. Please run 'pip install psycopg2-binary'.")
+        conn = psycopg2.connect(DATABASE_URL)
+        conn.autocommit = True
+        return conn
+    else:
+        path = Path(DB_PATH)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(str(path))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+def get_cursor(conn):
+    """Returns a cursor that returns results as dictionaries."""
+    if DATABASE_URL:
+        return conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        return conn.cursor()
+
+def get_last_row_id(cur, table_name=None):
+    """
+    Returns the ID of the last inserted row.
+    SQLite uses cur.lastrowid.
+    PostgreSQL usually needs 'RETURNING id' in the query, but we can also use cur.fetchone()
+    if we included it, or use cur.lastrowid if the driver supports it (psycopg2 usually doesn't).
+    """
+    if not DATABASE_URL:
+        return cur.lastrowid
+    else:
+        # Fallback for Postgres if we forgot RETURNING id
+        try:
+            row = cur.fetchone()
+            if row and 'id' in row:
+                return row['id']
+            if row and isinstance(row, (list, tuple)):
+                return row[0]
+        except:
+            pass
+        return None
 
 def init_db():
-    """Create all tables if they don't exist."""
+    """Initializes schema. Compatible with SQLite and PostgreSQL."""
     conn = get_connection()
-    cur = conn.cursor()
-
-    cur.executescript("""
-        -- Exams master table
+    cur = get_cursor(conn)
+    
+    # We use Postgres-friendly SERIAL. database.py will convert to AUTOINCREMENT for SQLite.
+    schema = """
         CREATE TABLE IF NOT EXISTS exams (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             name TEXT UNIQUE NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_scraped TIMESTAMP
         );
 
-        -- Exam schedule / upcoming exams
         CREATE TABLE IF NOT EXISTS exam_schedule (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             exam_name TEXT UNIQUE NOT NULL,
             conducting_body TEXT,
             notification_date TEXT,
@@ -51,10 +93,9 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        -- Products scraped from marketplaces
         CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            exam_id INTEGER NOT NULL,
+            id SERIAL PRIMARY KEY,
+            exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
             title TEXT NOT NULL,
             author TEXT,
             publisher TEXT,
@@ -75,14 +116,12 @@ def init_db():
             amazon_rank TEXT,
             description TEXT,
             is_bestseller INTEGER DEFAULT 0,
-            scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
+            scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        -- Reviews scraped from marketplaces
         CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER NOT NULL,
+            id SERIAL PRIMARY KEY,
+            product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
             reviewer_name TEXT,
             rating REAL,
             title TEXT,
@@ -91,42 +130,28 @@ def init_db():
             verified_purchase INTEGER DEFAULT 0,
             helpful_count INTEGER DEFAULT 0,
             marketplace TEXT,
-            scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+            scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+    """
+    
+    if not DATABASE_URL:
+        schema = schema.replace("SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
+        schema = schema.replace("DOUBLE PRECISION", "REAL")
 
-        -- AI analysis results per product
-        CREATE TABLE IF NOT EXISTS ai_analysis (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER UNIQUE NOT NULL,
-            sentiment_data TEXT,
-            feature_data TEXT,
-            analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-        );
-
-        -- Market gap insights per exam
-        CREATE TABLE IF NOT EXISTS market_gaps (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            exam_id INTEGER NOT NULL,
-            gap_data TEXT,
-            recommendations TEXT,
-            analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
-        );
-
-        -- Indexes for performance
-        CREATE INDEX IF NOT EXISTS idx_products_exam ON products(exam_id);
-        CREATE INDEX IF NOT EXISTS idx_products_marketplace ON products(marketplace);
-        CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);
-        CREATE INDEX IF NOT EXISTS idx_schedule_date ON exam_schedule(expected_exam_date);
-        CREATE INDEX IF NOT EXISTS idx_schedule_name ON exam_schedule(exam_name);
-    """)
-
-    conn.commit()
-    conn.close()
-
+    try:
+        if DATABASE_URL:
+            # Postgres execute doesn't like multiple statements in one call sometimes
+            # and Supabase often prefers manual schema run. This is for safety.
+            for statement in schema.split(";"):
+                if statement.strip():
+                    cur.execute(statement)
+        else:
+            conn.executescript(schema)
+        conn.commit()
+    except Exception as e:
+        print(f"init_db issue: {e}")
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     init_db()
-    print("Database initialized successfully.")
